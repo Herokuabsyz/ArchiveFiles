@@ -65,8 +65,42 @@ $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('Accoun
 //DefaultEndpointsProtocol=https;AccountName=archivefilesstorage;AccountKey=kc2KM1p0AxCnKTQ3QNfrYe4mTNzQAqhViNB7O/ObXWFKY2y8HJvFzS0xbVL+BfE3Xi6o+DIQptQJKwgHtlVT7A==;EndpointSuffix=core.windows.net
 // Create blob client.
 	echo 'afer connect';
+	# Setup a specific instance of an Azure::Storage::Client
+    $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('account_name').";AccountKey=".getenv('account_key');
+    
+    // Create blob client.
+    $blobClient = BlobRestProxy::createBlobService($connectionString);
+    
+    # Create the BlobService that represents the Blob service for the storage account
+    $createContainerOptions = new CreateContainerOptions();
+    
+    $createContainerOptions->setPublicAccess(PublicAccessType::CONTAINER_AND_BLOBS);
+    
+    // Set container metadata.
+    $createContainerOptions->addMetaData("key1", "value1");
+    $createContainerOptions->addMetaData("key2", "value2");
+
+    $containerName = "blockblobs".generateRandomString();
+
+    try    {
+        // Create container.
+	$blobClient->createContainer($containerName, $createContainerOptions);
 	
-$blobClient = BlobRestProxy::createBlobService($connectionString);
+	$myfile = fopen("HelloWorld.txt", "w") or die("Unable to open file!");
+    fclose($myfile);
+
+    # Upload file as a block blob
+    echo "Uploading BlockBlob: ".PHP_EOL;
+    echo $fileToUpload;
+    echo "<br />";
+    
+    $content = fopen($fileToUpload, "r");
+
+    //Upload blob
+    $blobClient->createBlockBlob($containerName, $fileToUpload, $content);
+	}
+		
+/*$blobClient = BlobRestProxy::createBlobService($connectionString);
 echo 'blobclient';
 $fileToUpload = $zip_name;
 echo 'filetoupload';
@@ -95,27 +129,8 @@ echo 'container';
 		$listBlobsOptions = new ListBlobsOptions();
         $listBlobsOptions->setPrefix("HelloWorld");
         echo "These are the blobs present in the container: ".$containerName."<br>";
-        do{
-            $result = $blobClient->listBlobs($containerName, $listBlobsOptions);
-            foreach ($result->getBlobs() as $blob)
-            {
-                echo $blob->getName().": ".$blob->getUrl()."<br />";
-            }
         
-            $listBlobsOptions->setContinuationToken($result->getContinuationToken());
-        } while($result->getContinuationToken());
-        echo "<br />";
-$records[$i] = new SObject();
-$records[$i]->fields = array(
-    'Name' => $record->fields->LastName.'-->'.$containerName
-	);
-$records[$i]->type = 'Archival_Logs__c';
-$response1 = $mySforceConnection->delete(explode (",", $record->fields->ContentDocumentIds__c));
-foreach ($response1 as $result) {
-    echo $result->id . " deleted<br/>\n";
-}
-        
-    }
+    }*/
     catch(ServiceException $e){
         // Handle exception based on error codes and messages.
         // Error codes and messages are here:
