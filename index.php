@@ -69,7 +69,7 @@ $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('Accoun
     //$connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('account_name').";AccountKey=".getenv('account_key');
     
     // Create blob client.
-    $blobClient = BlobRestProxy::createBlobService($connectionString);
+   /* $blobClient = BlobRestProxy::createBlobService($connectionString);
     
     # Create the BlobService that represents the Blob service for the storage account
     $createContainerOptions = new CreateContainerOptions();
@@ -98,9 +98,9 @@ $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('Accoun
 
     //Upload blob
     $blobClient->createBlockBlob($containerName, $fileToUpload, $content);
-	}
+	}*/
 		
-/*$blobClient = BlobRestProxy::createBlobService($connectionString);
+$blobClient = BlobRestProxy::createBlobService($connectionString);
 echo 'blobclient';
 $fileToUpload = $zip_name;
 echo 'filetoupload';
@@ -130,7 +130,7 @@ echo 'container';
         $listBlobsOptions->setPrefix("HelloWorld");
         echo "These are the blobs present in the container: ".$containerName."<br>";
         
-    }*/
+    }
     catch(ServiceException $e){
         // Handle exception based on error codes and messages.
         // Error codes and messages are here:
