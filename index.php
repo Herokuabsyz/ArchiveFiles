@@ -65,9 +65,9 @@ $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('Accoun
 // Create blob client.
 	echo 'afer connect';
 $blobClient = BlobRestProxy::createBlobService($connectionString);
-
+echo 'blobclient';
 $fileToUpload = $zip_name;
-
+echo 'filetoupload';
     // Create container options object.
     $createContainerOptions = new CreateContainerOptions();
 
@@ -76,7 +76,7 @@ $fileToUpload = $zip_name;
     // Set container metadata.
     $createContainerOptions->addMetaData("key1", "value1");
     $createContainerOptions->addMetaData("key2", "value2");
-
+echo 'container';
       $containerName = "blockblobs".generateRandomString();
 	 echo $containerName;
 	//$containerName = $zip_name;
