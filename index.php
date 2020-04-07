@@ -58,10 +58,12 @@ if ($zip->open($zip_name, ZipArchive::CREATE) != TRUE )
 }
 $zip->close();
 }
+	echo 'after zip';
 $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('AccountName').";AccountKey=".getenv('AccountKey').";EndpointSuffix=".getenv('EndpointSuffix');
 //$connectionString = "DefaultEndpointsProtocol=https;AccountName=azureabsyz;AccountKey=1nqwRoip8tEOkLZSk3KoSj2NoazUXM2YrQJstNQE6w7bRQJkiVt1X5MsZzWyAuzqsUziC5vuN0eWWDEd4Mj5aw==;EndpointSuffix=core.windows.net";
 //DefaultEndpointsProtocol=https;AccountName=archivefilesstorage;AccountKey=kc2KM1p0AxCnKTQ3QNfrYe4mTNzQAqhViNB7O/ObXWFKY2y8HJvFzS0xbVL+BfE3Xi6o+DIQptQJKwgHtlVT7A==;EndpointSuffix=core.windows.net
 // Create blob client.
+	echo 'afer connect';
 $blobClient = BlobRestProxy::createBlobService($connectionString);
 
 $fileToUpload = $zip_name;
