@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,7 +23,9 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Validate;
+use MicrosoftAzure\Storage\Common\MarkerContinuationTokenTrait;
 
 /**
  * Optional parameters for listBlobs API.
@@ -33,50 +35,24 @@ use MicrosoftAzure\Storage\Common\Internal\Validate;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListBlobsOptions extends BlobServiceOptions
 {
-    /**
-     * @var string
-     */
+    use MarkerContinuationTokenTrait;
+
     private $_prefix;
-    
-    /**
-     * @var string
-     */
-    private $_marker;
-    
-    /**
-     * @var string
-     */
     private $_delimiter;
-    
-    /**
-     * @var integer
-     */
     private $_maxResults;
-    
-    /**
-     * @var boolean
-     */
     private $_includeMetadata;
-    
-    /**
-     * @var boolean
-     */
     private $_includeSnapshots;
-    
-    /**
-     * @var boolean
-     */
     private $_includeUncommittedBlobs;
+    private $_includeCopy;
 
     /**
      * Gets prefix.
      *
-     * @return string.
+     * @return string
      */
     public function getPrefix()
     {
@@ -87,19 +63,19 @@ class ListBlobsOptions extends BlobServiceOptions
      * Sets prefix.
      *
      * @param string $prefix value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setPrefix($prefix)
     {
-        Validate::isString($prefix, 'prefix');
+        Validate::canCastAsString($prefix, 'prefix');
         $this->_prefix = $prefix;
     }
     
     /**
      * Gets delimiter.
      *
-     * @return string.
+     * @return string
      */
     public function getDelimiter()
     {
@@ -110,42 +86,19 @@ class ListBlobsOptions extends BlobServiceOptions
      * Sets prefix.
      *
      * @param string $delimiter value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setDelimiter($delimiter)
     {
-        Validate::isString($delimiter, 'delimiter');
+        Validate::canCastAsString($delimiter, 'delimiter');
         $this->_delimiter = $delimiter;
     }
 
     /**
-     * Gets marker.
-     * 
-     * @return string.
-     */
-    public function getMarker()
-    {
-        return $this->_marker;
-    }
-
-    /**
-     * Sets marker.
-     *
-     * @param string $marker value.
-     * 
-     * @return none.
-     */
-    public function setMarker($marker)
-    {
-        Validate::isString($marker, 'marker');
-        $this->_marker = $marker;
-    }
-
-    /**
      * Gets max results.
-     * 
-     * @return integer.
+     *
+     * @return integer
      */
     public function getMaxResults()
     {
@@ -156,8 +109,8 @@ class ListBlobsOptions extends BlobServiceOptions
      * Sets max results.
      *
      * @param integer $maxResults value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setMaxResults($maxResults)
     {
@@ -167,8 +120,8 @@ class ListBlobsOptions extends BlobServiceOptions
 
     /**
      * Indicates if metadata is included or not.
-     * 
-     * @return boolean.
+     *
+     * @return boolean
      */
     public function getIncludeMetadata()
     {
@@ -179,8 +132,8 @@ class ListBlobsOptions extends BlobServiceOptions
      * Sets the include metadata flag.
      *
      * @param bool $includeMetadata value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setIncludeMetadata($includeMetadata)
     {
@@ -190,8 +143,8 @@ class ListBlobsOptions extends BlobServiceOptions
     
     /**
      * Indicates if snapshots is included or not.
-     * 
-     * @return boolean.
+     *
+     * @return boolean
      */
     public function getIncludeSnapshots()
     {
@@ -202,8 +155,8 @@ class ListBlobsOptions extends BlobServiceOptions
      * Sets the include snapshots flag.
      *
      * @param bool $includeSnapshots value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setIncludeSnapshots($includeSnapshots)
     {
@@ -213,8 +166,8 @@ class ListBlobsOptions extends BlobServiceOptions
     
     /**
      * Indicates if uncommittedBlobs is included or not.
-     * 
-     * @return boolean.
+     *
+     * @return boolean
      */
     public function getIncludeUncommittedBlobs()
     {
@@ -225,14 +178,35 @@ class ListBlobsOptions extends BlobServiceOptions
      * Sets the include uncommittedBlobs flag.
      *
      * @param bool $includeUncommittedBlobs value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setIncludeUncommittedBlobs($includeUncommittedBlobs)
     {
         Validate::isBoolean($includeUncommittedBlobs);
         $this->_includeUncommittedBlobs = $includeUncommittedBlobs;
     }
+    
+    /**
+     * Indicates if copy is included or not.
+     *
+     * @return boolean
+     */
+    public function getIncludeCopy()
+    {
+        return $this->_includeCopy;
+    }
+
+    /**
+     * Sets the include copy flag.
+     *
+     * @param bool $includeCopy value.
+     *
+     * @return void
+     */
+    public function setIncludeCopy($includeCopy)
+    {
+        Validate::isBoolean($includeCopy);
+        $this->_includeCopy = $includeCopy;
+    }
 }
-
-

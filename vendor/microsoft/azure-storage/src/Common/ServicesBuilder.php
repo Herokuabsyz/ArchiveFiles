@@ -23,23 +23,22 @@
  */
 
 namespace MicrosoftAzure\Storage\Common;
+
 use MicrosoftAzure\Storage\Blob\BlobRestProxy;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Internal\Validate;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
-use MicrosoftAzure\Storage\Common\Internal\Filters\DateFilter;
-use MicrosoftAzure\Storage\Common\Internal\Filters\HeadersFilter;
-use MicrosoftAzure\Storage\Common\Internal\Filters\AuthenticationFilter;
-use MicrosoftAzure\Storage\Common\Internal\InvalidArgumentTypeException;
 use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
+use MicrosoftAzure\Storage\Common\Internal\Authentication\SharedAccessSignatureAuthScheme;
 use MicrosoftAzure\Storage\Common\Internal\Authentication\SharedKeyAuthScheme;
 use MicrosoftAzure\Storage\Common\Internal\Authentication\TableSharedKeyLiteAuthScheme;
 use MicrosoftAzure\Storage\Common\Internal\StorageServiceSettings;
 use MicrosoftAzure\Storage\Queue\QueueRestProxy;
 use MicrosoftAzure\Storage\Table\TableRestProxy;
-use MicrosoftAzure\Storage\Table\Internal\AtomReaderWriter;
+use MicrosoftAzure\Storage\File\FileRestProxy;
+use MicrosoftAzure\Storage\Table\Internal\JsonODataReaderWriter;
 use MicrosoftAzure\Storage\Table\Internal\MimeReaderWriter;
-
+use MicrosoftAzure\Storage\Common\Internal\Middlewares\CommonRequestMiddleware;
 
 /**
  * Builds azure service objects.
@@ -49,20 +48,18 @@ use MicrosoftAzure\Storage\Table\Internal\MimeReaderWriter;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ServicesBuilder
 {
-    /**
-     * @var ServicesBuilder
-     */
-    private static $_instance = null;
+    private static $instance = null;
 
     /**
      * Gets the serializer used in the REST services construction.
      *
-     * @return MicrosoftAzure\Storage\Common\Internal\Serialization\ISerializer
+     * @internal
+     *
+     * @return Internal\Serialization\ISerializer
      */
     protected function serializer()
     {
@@ -72,6 +69,8 @@ class ServicesBuilder
     /**
      * Gets the MIME serializer used in the REST services construction.
      *
+     * @internal
+     *
      * @return \MicrosoftAzure\Storage\Table\Internal\IMimeReaderWriter
      */
     protected function mimeSerializer()
@@ -80,13 +79,15 @@ class ServicesBuilder
     }
 
     /**
-     * Gets the Atom serializer used in the REST services construction.
+     * Gets the odata serializer used in the REST services construction.
      *
-     * @return \MicrosoftAzure\Storage\Table\Internal\IAtomReaderWriter
+     * @internal
+     *
+     * @return \MicrosoftAzure\Storage\Table\Internal\IODataReaderWriter
      */
-    protected function atomSerializer()
+    protected function odataSerializer()
     {
-        return new AtomReaderWriter();
+        return new JsonODataReaderWriter();
     }
 
     /**
@@ -95,7 +96,9 @@ class ServicesBuilder
      * @param string $accountName The account name.
      * @param string $accountKey  The account key.
      *
-     * @return \MicrosoftAzure\Storage\Common\Internal\Authentication\StorageAuthScheme
+     * @internal
+     *
+     * @return \MicrosoftAzure\Storage\Common\Internal\Authentication\SharedKeyAuthScheme
      */
     protected function queueAuthenticationScheme($accountName, $accountKey)
     {
@@ -108,9 +111,26 @@ class ServicesBuilder
      * @param string $accountName The account name.
      * @param string $accountKey  The account key.
      *
-     * @return \MicrosoftAzure\Storage\Common\Internal\Authentication\StorageAuthScheme
+     * @internal
+     *
+     * @return \MicrosoftAzure\Storage\Common\Internal\Authentication\SharedKeyAuthScheme
      */
     protected function blobAuthenticationScheme($accountName, $accountKey)
+    {
+        return new SharedKeyAuthScheme($accountName, $accountKey);
+    }
+
+    /**
+     * Gets the File authentication scheme.
+     *
+     * @param string $accountName The account name.
+     * @param string $accountKey  The account key.
+     *
+     * @internal
+     *
+     * @return \MicrosoftAzure\Storage\Common\Internal\Authentication\SharedKeyAuthScheme
+     */
+    protected function fileAuthenticationScheme($accountName, $accountKey)
     {
         return new SharedKeyAuthScheme($accountName, $accountKey);
     }
@@ -121,6 +141,8 @@ class ServicesBuilder
      * @param string $accountName The account name.
      * @param string $accountKey  The account key.
      *
+     * @internal
+     *
      * @return TableSharedKeyLiteAuthScheme
      */
     protected function tableAuthenticationScheme($accountName, $accountKey)
@@ -129,133 +151,274 @@ class ServicesBuilder
     }
 
     /**
-     * Builds a queue object.
+     * Gets the SAS authentication scheme.
+     *
+     * @param string $sasToken The SAS token.
+     *
+     * @internal
+     *
+     * @return \MicrosoftAzure\Storage\Common\Internal\Authentication\SharedAccessSignatureAuthScheme
+     */
+    protected function sasAuthenticationScheme($sasToken)
+    {
+        return new SharedAccessSignatureAuthScheme($sasToken);
+    }
+
+    /**
+     * Builds a queue service object, it accepts the following
+     * options:
+     *
+     * - http: (array) the underlying guzzle options. refer to
+     *   http://docs.guzzlephp.org/en/latest/request-options.html for detailed available options
+     * - middlewares: (mixed) the middleware should be either an instance of a sub-class that
+     *   implements {@see MicrosoftAzure\Storage\Common\Middlewares\IMiddleware}, or a
+     *   `callable` that follows the Guzzle middleware implementation convention
      *
      * @param string $connectionString The configuration connection string.
      * @param array  $options          Array of options to pass to the service
      *
-     * @return MicrosoftAzure\Storage\Queue\Internal\IQueue
+     * @return \MicrosoftAzure\Storage\Queue\Internal\IQueue
      */
-    public function createQueueService($connectionString, $options = [])
-    {
+    public function createQueueService(
+        $connectionString,
+        array $options = []
+    ) {
         $settings = StorageServiceSettings::createFromConnectionString(
             $connectionString
         );
 
         $serializer = $this->serializer();
-        $uri        = Utilities::tryAddUrlScheme(
+        $primaryUri = Utilities::tryAddUrlScheme(
             $settings->getQueueEndpointUri()
+        );
+        $secondaryUri = Utilities::tryAddUrlScheme(
+            $settings->getQueueSecondaryEndpointUri()
         );
 
         $queueWrapper = new QueueRestProxy(
-            $uri,
+            $primaryUri,
+            $secondaryUri,
             $settings->getName(),
             $serializer,
             $options
         );
 
-        // Adding headers filter
-        $headers = array(
-            Resources::USER_AGENT => self::getUserAgent(),
-        );
-
-        $headers[Resources::X_MS_VERSION] = Resources::STORAGE_API_LATEST_VERSION;
-
-        $headersFilter = new HeadersFilter($headers);
-        $queueWrapper  = $queueWrapper->withFilter($headersFilter);
-
-        // Adding date filter
-        $dateFilter   = new DateFilter();
-        $queueWrapper = $queueWrapper->withFilter($dateFilter);
-
-        // Adding authentication filter
-        $authFilter = new AuthenticationFilter(
-            $this->queueAuthenticationScheme(
+        // Getting authentication scheme
+        if ($settings->hasSasToken()) {
+            $authScheme = $this->sasAuthenticationScheme(
+                $settings->getSasToken()
+            );
+        } else {
+            $authScheme = $this->queueAuthenticationScheme(
                 $settings->getName(),
                 $settings->getKey()
-            )
-        );
+            );
+        }
 
-        $queueWrapper = $queueWrapper->withFilter($authFilter);
+        // Adding common request middleware
+        $commonRequestMiddleware = new CommonRequestMiddleware($authScheme);
+        $queueWrapper->pushMiddleware($commonRequestMiddleware);
 
         return $queueWrapper;
     }
 
     /**
-     * Builds a blob object.
+     * Builds a blob service object, it accepts the following
+     * options:
+     *
+     * - http: (array) the underlying guzzle options. refer to
+     *   http://docs.guzzlephp.org/en/latest/request-options.html for detailed available options
+     * - middlewares: (mixed) the middleware should be either an instance of a sub-class that
+     *   implements {@see MicrosoftAzure\Storage\Common\Middlewares\IMiddleware}, or a
+     *   `callable` that follows the Guzzle middleware implementation convention
      *
      * @param string $connectionString The configuration connection string.
      * @param array  $options          Array of options to pass to the service
-     * @return MicrosoftAzure\Storage\Blob\Internal\IBlob
+     * @return \MicrosoftAzure\Storage\Blob\Internal\IBlob
      */
-    public function createBlobService($connectionString, $options = [])
-    {
+    public function createBlobService(
+        $connectionString,
+        array $options = []
+    ) {
         $settings = StorageServiceSettings::createFromConnectionString(
             $connectionString
         );
 
         $serializer = $this->serializer();
-        $uri        = Utilities::tryAddUrlScheme(
+
+        $primaryUri = Utilities::tryAddUrlScheme(
             $settings->getBlobEndpointUri()
         );
 
+        $secondaryUri = Utilities::tryAddUrlScheme(
+            $settings->getBlobSecondaryEndpointUri()
+        );
+
         $blobWrapper = new BlobRestProxy(
-            $uri,
+            $primaryUri,
+            $secondaryUri,
             $settings->getName(),
             $serializer,
             $options
         );
 
-        // Adding headers filter
-        $headers = array(
-            Resources::USER_AGENT => self::getUserAgent(),
-        );
-
-        $headers[Resources::X_MS_VERSION] = Resources::STORAGE_API_LATEST_VERSION;
-
-        $headersFilter = new HeadersFilter($headers);
-        $blobWrapper   = $blobWrapper->withFilter($headersFilter);
-
-        // Adding date filter
-        $dateFilter  = new DateFilter();
-        $blobWrapper = $blobWrapper->withFilter($dateFilter);
-
-        $authFilter = new AuthenticationFilter(
-            $this->blobAuthenticationScheme(
+        // Getting authentication scheme
+        if ($settings->hasSasToken()) {
+            $authScheme = $this->sasAuthenticationScheme(
+                $settings->getSasToken()
+            );
+        } else {
+            $authScheme = $this->blobAuthenticationScheme(
                 $settings->getName(),
                 $settings->getKey()
-            )
-        );
+            );
+        }
 
-        $blobWrapper = $blobWrapper->withFilter($authFilter);
+        // Adding common request middleware
+        $commonRequestMiddleware = new CommonRequestMiddleware($authScheme);
+        $blobWrapper->pushMiddleware($commonRequestMiddleware);
 
         return $blobWrapper;
     }
 
     /**
-     * Builds a table object.
+     * Builds an anonymous access object with given primary and secondary
+     * service endpoint. The service endpoint should contain a scheme and a
+     * host, e.g.:
+     *     https://www.contoso.com
+     *     http://mystorageaccount.blob.core.windows.net
+     *
+     * @param  string $primaryServiceEndpoint   Primary service endpoint.
+     * @param  string $secondaryServiceEndpoint Secondary service endpoint.
+     * @param  array  $options                  Optional request options.
+     *
+     * @return \MicrosoftAzure\Storage\Blob\Internal\IBlob
+     */
+    public function createContainerAnonymousAccess(
+        $primaryServiceEndpoint,
+        $secondaryServiceEndpoint = null,
+        array $options = []
+    ) {
+        Validate::canCastAsString($primaryServiceEndpoint, '$primaryServiceEndpoint');
+        if ($secondaryServiceEndpoint != null) {
+            Validate::canCastAsString(
+                $secondaryServiceEndpoint,
+                '$secondaryServiceEndpoint'
+            );
+        }
+
+        $serializer = $this->serializer();
+
+        $blobWrapper = new BlobRestProxy(
+            $primaryServiceEndpoint,
+            $secondaryServiceEndpoint,
+            self::tryParseAccountNameFromBlobEndpointURL($primaryServiceEndpoint),
+            $serializer,
+            $options
+        );
+
+        $blobWrapper->pushMiddleware(new CommonRequestMiddleware());
+
+        return $blobWrapper;
+    }
+
+    /**
+     * Builds a file service object, it accepts the following
+     * options:
+     *
+     * - http: (array) the underlying guzzle options. refer to
+     *   http://docs.guzzlephp.org/en/latest/request-options.html for detailed available options
+     * - middlewares: (mixed) the middleware should be either an instance of a sub-class that
+     *   implements {@see MicrosoftAzure\Storage\Common\Middlewares\IMiddleware}, or a
+     *   `callable` that follows the Guzzle middleware implementation convention
      *
      * @param string $connectionString The configuration connection string.
      * @param array  $options          Array of options to pass to the service
-     *
-     * @return MicrosoftAzure\Storage\Table\Internal\ITable
+     * @return \MicrosoftAzure\Storage\File\Internal\IFile
      */
-    public function createTableService($connectionString, $options = [])
-    {
+    public function createFileService(
+        $connectionString,
+        array $options = []
+    ) {
         $settings = StorageServiceSettings::createFromConnectionString(
             $connectionString
         );
 
-        $atomSerializer = $this->atomSerializer();
+        $serializer = $this->serializer();
+
+        $primaryUri = Utilities::tryAddUrlScheme(
+            $settings->getFileEndpointUri()
+        );
+
+        $secondaryUri = Utilities::tryAddUrlScheme(
+            $settings->getFileSecondaryEndpointUri()
+        );
+
+        $fileWrapper = new FileRestProxy(
+            $primaryUri,
+            $secondaryUri,
+            $settings->getName(),
+            $serializer,
+            $options
+        );
+
+        // Getting authentication scheme
+        if ($settings->hasSasToken()) {
+            $authScheme = $this->sasAuthenticationScheme(
+                $settings->getSasToken()
+            );
+        } else {
+            $authScheme = $this->fileAuthenticationScheme(
+                $settings->getName(),
+                $settings->getKey()
+            );
+        }
+
+        // Adding common request middleware
+        $commonRequestMiddleware = new CommonRequestMiddleware($authScheme);
+        $fileWrapper->pushMiddleware($commonRequestMiddleware);
+
+        return $fileWrapper;
+    }
+
+    /**
+     * Builds a table service object, it accepts the following
+     * options:
+     *
+     * - http: (array) the underlying guzzle options. refer to
+     *   http://docs.guzzlephp.org/en/latest/request-options.html for detailed available options
+     * - middlewares: (mixed) the middleware should be either an instance of a sub-class that
+     *   implements {@see MicrosoftAzure\Storage\Common\Middlewares\IMiddleware}, or a
+     *   `callable` that follows the Guzzle middleware implementation convention
+     *
+     * @param string $connectionString The configuration connection string.
+     * @param array  $options          Array of options to pass to the service
+     *
+     * @return \MicrosoftAzure\Storage\Table\Internal\ITable
+     */
+    public function createTableService(
+        $connectionString,
+        array $options = []
+    ) {
+        $settings = StorageServiceSettings::createFromConnectionString(
+            $connectionString
+        );
+
+        $odataSerializer = $this->odataSerializer();
         $mimeSerializer = $this->mimeSerializer();
         $serializer     = $this->serializer();
-        $uri            = Utilities::tryAddUrlScheme(
+
+        $primaryUri = Utilities::tryAddUrlScheme(
             $settings->getTableEndpointUri()
+        );
+        $secondaryUri = Utilities::tryAddUrlScheme(
+            $settings->getTableSecondaryEndpointUri()
         );
 
         $tableWrapper = new TableRestProxy(
-            $uri,
-            $atomSerializer,
+            $primaryUri,
+            $secondaryUri,
+            $odataSerializer,
             $mimeSerializer,
             $serializer,
             $options
@@ -263,50 +426,33 @@ class ServicesBuilder
 
         // Adding headers filter
         $headers               = array();
-        $latestServicesVersion = Resources::STORAGE_API_LATEST_VERSION;
         $currentVersion        = Resources::DATA_SERVICE_VERSION_VALUE;
         $maxVersion            = Resources::MAX_DATA_SERVICE_VERSION_VALUE;
         $accept                = Resources::ACCEPT_HEADER_VALUE;
         $acceptCharset         = Resources::ACCEPT_CHARSET_VALUE;
-        $userAgent             = self::getUserAgent();
 
-        $headers[Resources::X_MS_VERSION]             = $latestServicesVersion;
         $headers[Resources::DATA_SERVICE_VERSION]     = $currentVersion;
-        $headers[Resources::MAX_DATA_SERVICE_VERSION] = $maxVersion;
         $headers[Resources::MAX_DATA_SERVICE_VERSION] = $maxVersion;
         $headers[Resources::ACCEPT_HEADER]            = $accept;
         $headers[Resources::ACCEPT_CHARSET]           = $acceptCharset;
-        $headers[Resources::USER_AGENT]               = $userAgent;
 
-        $headersFilter = new HeadersFilter($headers);
-        $tableWrapper  = $tableWrapper->withFilter($headersFilter);
-
-        // Adding date filter
-        $dateFilter   = new DateFilter();
-        $tableWrapper = $tableWrapper->withFilter($dateFilter);
-
-        // Adding authentication filter
-        $authFilter = new AuthenticationFilter(
-            $this->tableAuthenticationScheme(
+        // Getting authentication scheme
+        if ($settings->hasSasToken()) {
+            $authScheme = $this->sasAuthenticationScheme(
+                $settings->getSasToken()
+            );
+        } else {
+            $authScheme = $this->tableAuthenticationScheme(
                 $settings->getName(),
                 $settings->getKey()
-            )
-        );
-
-        $tableWrapper = $tableWrapper->withFilter($authFilter);
+            );
+        }
+        
+        // Adding common request middleware
+        $commonRequestMiddleware = new CommonRequestMiddleware($authScheme, $headers);
+        $tableWrapper->pushMiddleware($commonRequestMiddleware);
 
         return $tableWrapper;
-    }
-
-    /**
-     * Gets the user agent string used in request header.
-     *
-     * @return string
-     */
-    private static function getUserAgent()
-    {
-        // e.g. User-Agent: Azure-Storage/0.10.0 (PHP 5.5.32)
-        return 'Azure-Storage/' . Resources::SDK_VERSION . ' (PHP ' . PHP_VERSION . ')';
     }
 
     /**
@@ -316,10 +462,31 @@ class ServicesBuilder
      */
     public static function getInstance()
     {
-        if (!isset(self::$_instance)) {
-            self::$_instance = new ServicesBuilder();
+        if (!isset(self::$instance)) {
+            self::$instance = new ServicesBuilder();
         }
 
-        return self::$_instance;
+        return self::$instance;
+    }
+
+    /**
+     * Try to parse the account anme from blob endpoint URL, return null
+     * if pattern failed to found.
+     *
+     * @param string $url The blob endpoint URL.
+     *
+     * @return string|null
+     */
+    private static function tryParseAccountNameFromBlobEndpointURL($url)
+    {
+        $pos = strpos($url, Resources::BLOB_BASE_DNS_NAME);
+
+        if ($pos == false) {
+            return null;
+        }
+
+        $slashPos = strpos($url, '//');
+
+        return substr($url, $slashPos + 2, $pos - $slashPos - 3);
     }
 }

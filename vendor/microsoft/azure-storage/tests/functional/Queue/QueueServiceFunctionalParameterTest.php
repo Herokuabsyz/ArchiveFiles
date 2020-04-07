@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -25,7 +25,7 @@
 namespace MicrosoftAzure\Storage\Tests\Functional\Queue;
 
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
-use MicrosoftAzure\Storage\Common\ServiceException;
+use MicrosoftAzure\Storage\Common\Exceptions\ServiceException;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Queue\Models\ListMessagesOptions;
 use MicrosoftAzure\Storage\Queue\Models\PeekMessagesOptions;
@@ -57,7 +57,6 @@ class QueueServiceFunctionalParameterTest extends FunctionalTestBase
     */
     public function testSetServicePropertiesNullOptions1()
     {
-
         $serviceProperties = QueueServiceFunctionalTestData::getDefaultServiceProperties();
         try {
             $this->restProxy->setServiceProperties($serviceProperties);
@@ -76,34 +75,6 @@ class QueueServiceFunctionalParameterTest extends FunctionalTestBase
     * @covers MicrosoftAzure\Storage\Queue\QueueRestProxy::setServiceProperties
     */
     public function testSetServicePropertiesNullOptions2()
-    {
-        try {
-            $this->restProxy->setServiceProperties(null);
-            $this->fail('Expect null service properties to throw');
-        } catch (\InvalidArgumentException $e) {
-            $this->assertEquals(Resources::INVALID_SVC_PROP_MSG, $e->getMessage(), 'Expect error message');
-            $this->assertEquals(0, $e->getCode(), 'Expected error code');
-        }
-    }
-
-    /**
-    * @covers MicrosoftAzure\Storage\Queue\QueueRestProxy::setServiceProperties
-    */
-    public function testSetServicePropertiesNullOptions3()
-    {
-        try {
-            $this->restProxy->setServiceProperties(null, null);
-            $this->fail('Expect service properties to throw');
-        } catch (\InvalidArgumentException $e) {
-            $this->assertEquals(Resources::INVALID_SVC_PROP_MSG, $e->getMessage(), 'Expect error message');
-            $this->assertEquals(0, $e->getCode(), 'Expected error code');
-        }
-    }
-
-    /**
-    * @covers MicrosoftAzure\Storage\Queue\QueueRestProxy::setServiceProperties
-    */
-    public function testSetServicePropertiesNullOptions4()
     {
         $serviceProperties = QueueServiceFunctionalTestData::getDefaultServiceProperties();
 
@@ -151,51 +122,6 @@ class QueueServiceFunctionalParameterTest extends FunctionalTestBase
     {
         try {
             $this->restProxy->deleteQueue(null);
-            $this->fail('Expect null name to throw');
-        } catch (ServiceException $e) {
-            $this->fail('Should not get a service exception');
-        } catch (\InvalidArgumentException $e) {
-            $this->assertEquals(sprintf(Resources::NULL_OR_EMPTY_MSG, 'queueName'), $e->getMessage(), 'Expect error message');
-        }
-    }
-
-    /**
-    * @covers MicrosoftAzure\Storage\Queue\QueueRestProxy::getQueueMetadata
-    */
-    public function testGetQueueMetadataNullName()
-    {
-        try {
-            $this->restProxy->getQueueMetadata(null);
-            $this->fail('Expect null name to throw');
-        } catch (ServiceException $e) {
-            $this->fail('Should not get a service exception');
-        } catch (\InvalidArgumentException $e) {
-            $this->assertEquals(sprintf(Resources::NULL_OR_EMPTY_MSG, 'queueName'), $e->getMessage(), 'Expect error message');
-        }
-    }
-
-    /**
-    * @covers MicrosoftAzure\Storage\Queue\QueueRestProxy::setQueueMetadata
-    */
-    public function testSetQueueMetadataNullNameAndOptions()
-    {
-        try {
-            $this->restProxy->setQueueMetadata(null, null);
-            $this->fail('Expect null name to throw');
-        } catch (ServiceException $e) {
-            $this->fail('Should not get a service exception');
-        } catch (\InvalidArgumentException $e) {
-            $this->assertEquals(sprintf(Resources::NULL_OR_EMPTY_MSG, 'queueName'), $e->getMessage(), 'Expect error message');
-        }
-    }
-
-    /**
-    * @covers MicrosoftAzure\Storage\Queue\QueueRestProxy::setQueueMetadata
-    */
-    public function testSetQueueMetadataNullName()
-    {
-        try {
-            $this->restProxy->setQueueMetadata(null, array());
             $this->fail('Expect null name to throw');
         } catch (ServiceException $e) {
             $this->fail('Should not get a service exception');

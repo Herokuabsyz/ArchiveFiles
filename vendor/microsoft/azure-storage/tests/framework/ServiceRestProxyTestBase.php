@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Framework;
+
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
 use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
@@ -34,7 +35,6 @@ use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ServiceRestProxyTestBase extends RestProxyTestBase
@@ -75,11 +75,6 @@ class ServiceRestProxyTestBase extends RestProxyTestBase
     {
         $this->propertiesChanged = false;
         $propertiesArray = array();
-        $propertiesArray['Logging']['Version'] = '1.0';
-        $propertiesArray['Logging']['Delete'] = 'false';
-        $propertiesArray['Logging']['Read'] = 'false';
-        $propertiesArray['Logging']['Write'] = 'false';
-        $propertiesArray['Logging']['RetentionPolicy']['Enabled'] = 'false';
         $propertiesArray['HourMetrics']['Version'] = '1.0';
         $propertiesArray['HourMetrics']['Enabled'] = 'false';
         $propertiesArray['HourMetrics']['IncludeAPIs'] = 'false';
@@ -102,5 +97,3 @@ class ServiceRestProxyTestBase extends RestProxyTestBase
         }
     }
 }
-
-

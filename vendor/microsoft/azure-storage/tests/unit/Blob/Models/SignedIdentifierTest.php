@@ -11,35 +11,35 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
- * @package   MicrosoftAzure\Storage\Tests\Unit\Blob\Models
+ * @package   MicrosoftAzure\Storage\Tests\Unit\Common\Models
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
  * @link      https://github.com/azure/azure-storage-php
  */
-namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
-use MicrosoftAzure\Storage\Blob\Models\SignedIdentifier;
-use MicrosoftAzure\Storage\Blob\Models\AccessPolicy;
+namespace MicrosoftAzure\Storage\Tests\Unit\Common\Models;
+
+use MicrosoftAzure\Storage\Common\Models\SignedIdentifier;
+use MicrosoftAzure\Storage\Common\Models\AccessPolicy;
 
 /**
  * Unit tests for class SignedIdentifier
  *
  * @category  Microsoft
- * @package   MicrosoftAzure\Storage\Tests\Unit\Blob\Models
+ * @package   MicrosoftAzure\Storage\Tests\Unit\Common\Models
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class SignedIdentifierTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\SignedIdentifier::getId 
+     * @covers MicrosoftAzure\Storage\Common\Models\SignedIdentifier::getId
      */
     public function testGetId()
     {
@@ -56,7 +56,7 @@ class SignedIdentifierTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\SignedIdentifier::setId 
+     * @covers MicrosoftAzure\Storage\Common\Models\SignedIdentifier::setId
      */
     public function testSetId()
     {
@@ -72,7 +72,7 @@ class SignedIdentifierTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\SignedIdentifier::getAccessPolicy 
+     * @covers MicrosoftAzure\Storage\Common\Models\SignedIdentifier::getAccessPolicy
      */
     public function testGetAccessPolicy()
     {
@@ -92,7 +92,7 @@ class SignedIdentifierTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\SignedIdentifier::setAccessPolicy
+     * @covers MicrosoftAzure\Storage\Common\Models\SignedIdentifier::setAccessPolicy
      */
     public function testSetAccessPolicy()
     {
@@ -113,7 +113,7 @@ class SignedIdentifierTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\SignedIdentifier::toArray
+     * @covers MicrosoftAzure\Storage\Common\Models\SignedIdentifier::toArray
      * @depends testSetAccessPolicy
      */
     public function testToXml($signedIdentifier)
@@ -130,5 +130,3 @@ class SignedIdentifierTest extends \PHPUnit_Framework_TestCase
         $this->assertArrayHasKey('AccessPolicy', $array['SignedIdentifier']);
     }
 }
-
-

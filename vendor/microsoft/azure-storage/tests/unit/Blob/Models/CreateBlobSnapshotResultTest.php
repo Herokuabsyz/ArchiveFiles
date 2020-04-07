@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,10 +22,10 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult;
-use MicrosoftAzure\Storage\Blob\Models\AccessCondition;
 
 /**
  * Unit tests for class SnapshotBlobResult
@@ -35,7 +35,6 @@ use MicrosoftAzure\Storage\Blob\Models\AccessCondition;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class CreateBlobSnapshotResultTest extends \PHPUnit_Framework_TestCase
@@ -43,50 +42,26 @@ class CreateBlobSnapshotResultTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult::getSnapshot
      * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult::setSnapshot
-     */
-    public function testSetSnapshot()
-    {
-        $createBlobSnapshotResult = new CreateBlobSnapshotResult();
-        $expected = new \DateTime("2008-8-8");
-        $createBlobSnapshotResult->setSnapshot($expected);
-        
-        $this->assertEquals(
-            $expected,
-            $createBlobSnapshotResult->getSnapshot()
-            );
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult::getETag
      * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult::setETag
-     */
-    public function testSetETag()
-    {
-        $createBlobSnapshotResult = new CreateBlobSnapshotResult();
-        $expected = "12345678";
-        $createBlobSnapshotResult->setETag($expected);
-        
-        $this->assertEquals(
-            $expected,
-            $createBlobSnapshotResult->getETag()
-            );
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult::getLastModified
      * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult::setLastModified
+     * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobSnapshotResult::create
      */
-    public function testSetLastModified()
+    public function testCreate()
     {
-        $createBlobSnapshotResult = new CreateBlobSnapshotResult();
-        $expected = new \DateTime("2008-8-8");
-        $createBlobSnapshotResult->setLastModified($expected);
+        // Setup
+        $sample = TestResources::listBlobsOneEntry();
+        $expected = $sample['Blobs']['Blob']['Properties'];
+        $expected['x-ms-snapshot'] = $sample['Blobs']['Blob']['Snapshot'];
+        $expectedDate = Utilities::rfc1123ToDateTime($expected['Last-Modified']);
         
-        $this->assertEquals(
-            $expected,
-            $createBlobSnapshotResult->getLastModified()
-            );
+        // Test
+        $actual = CreateBlobSnapshotResult::create($expected);
         
+        // Assert
+        $this->assertEquals($expectedDate, $actual->getLastModified());
+        $this->assertEquals($expected['Etag'], $actual->getETag());
+        $this->assertEquals($expected['x-ms-snapshot'], $actual->getSnapshot());
     }
 }
-

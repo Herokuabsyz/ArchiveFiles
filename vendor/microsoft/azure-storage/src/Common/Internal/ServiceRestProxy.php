@@ -23,65 +23,105 @@
  */
 
 namespace MicrosoftAzure\Storage\Common\Internal;
-use MicrosoftAzure\Storage\Common\ServiceException;
-use MicrosoftAzure\Storage\Common\Internal\Resources;
-use MicrosoftAzure\Storage\Common\Internal\Validate;
-use MicrosoftAzure\Storage\Common\Internal\Utilities;
+
+use MicrosoftAzure\Storage\Common\Exceptions\ServiceException;
+use MicrosoftAzure\Storage\Common\Internal\RetryMiddlewareFactory;
+use MicrosoftAzure\Storage\Common\Models\ServiceOptions;
+use MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext;
+use MicrosoftAzure\Storage\Common\Internal\Middlewares\MiddlewareBase;
+use MicrosoftAzure\Storage\Common\Middlewares\MiddlewareStack;
+use MicrosoftAzure\Storage\Common\LocationMode;
+use GuzzleHttp\Promise\EachPromise;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Psr7\Uri;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Base class for all services rest proxies.
  *
+ * @ignore
  * @category  Microsoft
  * @package   MicrosoftAzure\Storage\Common\Internal
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ServiceRestProxy extends RestProxy
 {
-    /**
-     * @var string
-     */
-    private $_accountName;
-
-    /**
-     *
-     * @var \Uri
-     */
-       private $_psrUri;
-
-    /**
-     * @var array
-     */
-    private $_options;
+    private $accountName;
+    private $psrPrimaryUri;
+    private $psrSecondaryUri;
+    private $options;
+    private $client;
 
     /**
      * Initializes new ServiceRestProxy object.
      *
-     * @param string      $uri            The storage account uri.
-     * @param string      $accountName    The name of the account.
-     * @param ISerializer $dataSerializer The data serializer.
-     * @param array       $options        Array of options for the service
+     * @param string                    $primaryUri     The storage account
+     *                                                  primary uri.
+     * @param string                    $secondaryUri   The storage account
+     *                                                  secondary uri.
+     * @param string                    $accountName    The name of the account.
+     * @param Serialization\ISerializer $dataSerializer The data serializer.
+     * @param array                     $options        Array of options for
+     *                                                  the service
      */
-    public function __construct($uri, $accountName, $dataSerializer, $options = [])
+    public function __construct(
+        $primaryUri,
+        $secondaryUri,
+        $accountName,
+        Serialization\ISerializer $dataSerializer,
+        array $options = []
+    ) {
+        $primaryUri   = Utilities::appendDelimiter($primaryUri, '/');
+        $secondaryUri = Utilities::appendDelimiter($secondaryUri, '/');
+
+        parent::__construct($dataSerializer);
+
+        $this->accountName     = $accountName;
+        $this->psrPrimaryUri   = new Uri($primaryUri);
+        $this->psrSecondaryUri = new Uri($secondaryUri);
+        $this->options         = array_merge(array('http' => array()), $options);
+        $this->client          = self::createClient($this->options['http']);
+    }
+
+    /**
+     * Create a Guzzle client for future usage.
+     *
+     * @param  array $options Optional parameters for the client.
+     *
+     * @return Client
+     */
+    private static function createClient(array $options)
     {
-        if ($uri[strlen($uri)-1] != '/')
-        {
-            $uri = $uri . '/';
+        $verify = true;
+        //Disable SSL if proxy has been set, and set the proxy in the client.
+        $proxy = getenv('HTTP_PROXY');
+        // For testing with Fiddler
+        // $proxy = 'localhost:8888';
+        // $verify = false;
+        if (!empty($proxy)) {
+            $options['proxy'] = $proxy;
         }
 
-        parent::__construct($dataSerializer, $uri);
-
-        $this->_accountName = $accountName;
-        $this->_psrUri = new \GuzzleHttp\Psr7\Uri($uri);
-        $this->_options = array_merge(array('http' => array()), $options);
+        return (new \GuzzleHttp\Client(
+            array_merge(
+                $options,
+                array(
+                    "defaults" => array(
+                        "allow_redirects" => true,
+                        "exceptions" => true,
+                        "decode_content" => true,
+                    ),
+                    'cookies' => true,
+                    'verify' => $verify,
+                )
+            )
+        ));
     }
 
     /**
@@ -91,236 +131,362 @@ class ServiceRestProxy extends RestProxy
      */
     public function getAccountName()
     {
-        return $this->_accountName;
+        return $this->accountName;
     }
 
     /**
-     * Sends HTTP request with the specified parameters.
+     * Create a middleware stack with given middleware.
      *
-     * @param string $method         HTTP method used in the request
-     * @param array  $headers        HTTP headers.
-     * @param array  $queryParams    URL query parameters.
-     * @param array  $postParameters The HTTP POST parameters.
-     * @param string $path           URL path
-     * @param int    $statusCode     Expected status code received in the response
-     * @param string $body           Request body
-     * @param array  $clientOptions  Guzzle Client options
+     * @param  ServiceOptions  $serviceOptions The options user passed in.
      *
-     * @return GuzzleHttp\Psr7\Response
+     * @return MiddlewareStack
      */
-    protected function send(
-        $method,
-        $headers,
-        $queryParams,
-        $postParameters,
-        $path,
+    protected function createMiddlewareStack(ServiceOptions $serviceOptions)
+    {
+        //If handler stack is not defined by the user, create a default
+        //middleware stack.
+        $stack = null;
+        if (array_key_exists('stack', $this->options['http'])) {
+            $stack = $this->options['http']['stack'];
+        } elseif ($serviceOptions->getMiddlewareStack() != null) {
+            $stack = $serviceOptions->getMiddlewareStack();
+        } else {
+            $stack = new MiddlewareStack();
+        }
+
+        //Push all the middlewares specified in the $serviceOptions to the
+        //handlerstack.
+        if ($serviceOptions->getMiddlewares() != array()) {
+            foreach ($serviceOptions->getMiddlewares() as $middleware) {
+                $stack->push($middleware);
+            }
+        }
+
+        //Push all the middlewares specified in the $options to the
+        //handlerstack.
+        if (array_key_exists('middlewares', $this->options)) {
+            foreach ($this->options['middlewares'] as $middleware) {
+                $stack->push($middleware);
+            }
+        }
+
+        //Push all the middlewares specified in $this->middlewares to the
+        //handlerstack.
+        foreach ($this->getMiddlewares() as $middleware) {
+            $stack->push($middleware);
+        }
+
+        return $stack;
+    }
+
+    /**
+     * Send the requests concurrently. Number of concurrency can be modified
+     * by inserting a new key/value pair with the key 'number_of_concurrency'
+     * into the $requestOptions of $serviceOptions. Return only the promise.
+     *
+     * @param  callable       $generator   the generator function to generate
+     *                                     request upon fulfillment
+     * @param  int            $statusCode  The expected status code for each of the
+     *                                     request generated by generator.
+     * @param  ServiceOptions $options     The service options for the concurrent
+     *                                     requests.
+     *
+     * @return array
+     */
+    protected function sendConcurrentAsync(
+        callable $generator,
         $statusCode,
+        ServiceOptions $options
+    ) {
+        $client = $this->client;
+        $middlewareStack = $this->createMiddlewareStack($options);
+
+        $sendAsync = function ($request, $options) use ($client) {
+            if ($request->getMethod() == 'HEAD') {
+                $options['decode_content'] = false;
+            }
+            return $client->sendAsync($request, $options);
+        };
+
+        $handler = $middlewareStack->apply($sendAsync);
+
+        $requestOptions = $this->generateRequestOptions($options, $handler);
+
+        $promises = \call_user_func(
+            function () use (
+                $generator,
+                $handler,
+                $requestOptions
+            ) {
+                while (is_callable($generator) && ($request = $generator())) {
+                    yield \call_user_func($handler, $request, $requestOptions);
+                }
+            }
+        );
+
+        $eachPromise = new EachPromise($promises, [
+            'concurrency' => $options->getNumberOfConcurrency(),
+            'fulfilled' => function ($response, $index) use ($statusCode) {
+                //the promise is fulfilled, evaluate the response
+                self::throwIfError(
+                    $response,
+                    $statusCode
+                );
+            },
+            'rejected' => function ($reason, $index) {
+                //Still rejected even if the retry logic has been applied.
+                //Throwing exception.
+                throw $reason;
+            }
+        ]);
+        
+        return $eachPromise->promise();
+    }
+
+
+    /**
+     * Create the request to be sent.
+     *
+     * @param  string $method         The method of the HTTP request
+     * @param  array  $headers        The header field of the request
+     * @param  array  $queryParams    The query parameter of the request
+     * @param  array  $postParameters The HTTP POST parameters
+     * @param  string $path           URL path
+     * @param  string $body           Request body
+     *
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    protected function createRequest(
+        $method,
+        array $headers,
+        array $queryParams,
+        array $postParameters,
+        $path,
+        $locationMode,
         $body = Resources::EMPTY_STRING
     ) {
-        // add query parameters into headers
-        $uri = $this->_psrUri;
-        if ($path != NULL)
-        {
+        if ($locationMode == LocationMode::SECONDARY_ONLY ||
+            $locationMode == LocationMode::SECONDARY_THEN_PRIMARY) {
+            $uri = $this->psrSecondaryUri;
+        } else {
+            $uri = $this->psrPrimaryUri;
+        }
+        
+        //Append the path, not replacing it.
+        if ($path != null) {
+            $exPath = $uri->getPath();
+            if ($exPath != '') {
+                //Remove the duplicated slash in the path.
+                if ($path != '' && $path[0] == '/') {
+                    $path = $exPath . substr($path, 1);
+                } else {
+                    $path = $exPath . $path;
+                }
+            }
             $uri = $uri->withPath($path);
         }
 
-        if ($queryParams != NULL)
-        {
+        // add query parameters into headers
+        if ($queryParams != null) {
             $queryString = Psr7\build_query($queryParams);
             $uri = $uri->withQuery($queryString);
         }
 
         // add post parameters into bodys
-        $actualBody = NULL;
-        if (empty($body))
-        {
-            if (empty($headers['content-type']))
-            {
+        $actualBody = null;
+        if (empty($body)) {
+            if (empty($headers['content-type'])) {
                 $headers['content-type'] = 'application/x-www-form-urlencoded';
                 $actualBody = Psr7\build_query($postParameters);
             }
-        }
-        else
-        {
+        } else {
             $actualBody = $body;
         }
 
         $request = new Request(
-                $method,
-                $uri,
-                $headers,
-                $actualBody);
-
-        $client = new \GuzzleHttp\Client(
-            array_merge(
-                $this->_options['http'],
-                array(
-                    "defaults" => array(
-                        "allow_redirects" => true, "exceptions" => true,
-                        "decode_content" => true,
-                    ),
-                    'cookies' => true,
-                    'verify' => false,
-                    // For testing with Fiddler
-                    // 'proxy' => "localhost:8888",
-                )
-            )
+            $method,
+            $uri,
+            $headers,
+            $actualBody
         );
 
+        //add content-length to header
         $bodySize = $request->getBody()->getSize();
-        if ($bodySize > 0)
-        {
+        if ($bodySize > 0) {
             $request = $request->withHeader('content-length', $bodySize);
         }
-
-        // Apply filters to the requests
-        foreach ($this->getFilters() as $filter) {
-            $request = $filter->handleRequest($request);
-        }
-
-        try {
-            $response = $client->send($request);
-            self::throwIfError(
-                    $response->getStatusCode(),
-                    $response->getReasonPhrase(),
-                    $response->getBody(),
-                    $statusCode);
-            return $response;
-        }
-        catch(\GuzzleHttp\Exception\RequestException $e)
-        {
-            if ($e->hasResponse())
-            {
-                $response = $e->getResponse();
-                self::throwIfError(
-                        $response->getStatusCode(),
-                        $response->getReasonPhrase(),
-                        $response->getBody(),
-                        $statusCode);
-                return $response;
-            }
-            else
-            {
-                throw $e;
-            }
-        }
-    }
-
-    protected function sendContext($context)
-    {
-        return $this->send(
-                $context->getMethod(),
-                $context->getHeaders(),
-                $context->getQueryParameters(),
-                $context->getPostParameters(),
-                $context->getPath(),
-                $context->getStatusCodes(),
-                $context->getBody());
+        return $request;
     }
 
     /**
-     * Throws ServiceException if the recieved status code is not expected.
+     * Create promise of sending HTTP request with the specified parameters.
      *
-     * @param string $actual   The received status code.
-     * @param string $reason   The reason phrase.
-     * @param string $message  The detailed message (if any).
-     * @param string $expected The expected status codes.
+     * @param  string         $method         HTTP method used in the request
+     * @param  array          $headers        HTTP headers.
+     * @param  array          $queryParams    URL query parameters.
+     * @param  array          $postParameters The HTTP POST parameters.
+     * @param  string         $path           URL path
+     * @param  array|int      $expected       Expected Status Codes.
+     * @param  string         $body           Request body
+     * @param  ServiceOptions $serviceOptions Service options
      *
-     * @return none
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    protected function sendAsync(
+        $method,
+        array $headers,
+        array $queryParams,
+        array $postParameters,
+        $path,
+        $expected = Resources::STATUS_OK,
+        $body = Resources::EMPTY_STRING,
+        ServiceOptions $serviceOptions = null
+    ) {
+        if ($serviceOptions == null) {
+            $serviceOptions = new ServiceOptions();
+        }
+        $this->addOptionalQueryParam(
+            $queryParams,
+            Resources::QP_TIMEOUT,
+            $serviceOptions->getTimeout()
+        );
+
+        $request = $this->createRequest(
+            $method,
+            $headers,
+            $queryParams,
+            $postParameters,
+            $path,
+            $serviceOptions->getLocationMode(),
+            $body
+        );
+
+        $client = $this->client;
+
+        $middlewareStack = $this->createMiddlewareStack($serviceOptions);
+
+        $sendAsync = function ($request, $options) use ($client) {
+            return $client->sendAsync($request, $options);
+        };
+
+        $handler = $middlewareStack->apply($sendAsync);
+
+        $requestOptions =
+            $this->generateRequestOptions($serviceOptions, $handler);
+
+        if ($request->getMethod() == 'HEAD') {
+            $requestOptions[Resources::ROS_DECODE_CONTENT] = false;
+        }
+
+        $promise = \call_user_func($handler, $request, $requestOptions);
+
+        return $promise->then(
+            function ($response) use ($expected, $requestOptions) {
+                self::throwIfError(
+                    $response,
+                    $expected
+                );
+
+                return self::addLocationHeaderToResponse(
+                    $response,
+                    $requestOptions[Resources::ROS_LOCATION_MODE]
+                );
+            },
+            function ($reason) use ($expected) {
+                if (!($reason instanceof RequestException)) {
+                    throw $reason;
+                }
+                $response = $reason->getResponse();
+                if ($response != null) {
+                    self::throwIfError(
+                        $response,
+                        $expected
+                    );
+                } else {
+                    //if could not get response but promise rejected, throw reason.
+                    throw $reason;
+                }
+                return $response;
+            }
+        );
+    }
+
+    /**
+     * Generate the request options using the given service options and stored
+     * information.
      *
-     * @static
+     * @param  ServiceOptions $serviceOptions The service options used to
+     *                                        generate request options.
+     * @param  callable       $handler        The handler used to send the
+     *                                        request.
+     * @return array
+     */
+    protected function generateRequestOptions(
+        ServiceOptions $serviceOptions,
+        callable $handler
+    ) {
+        $result = array();
+        $result[Resources::ROS_LOCATION_MODE]  = $serviceOptions->getLocationMode();
+        $result[Resources::ROS_STREAM]         = $serviceOptions->getIsStreaming();
+        $result[Resources::ROS_DECODE_CONTENT] = $serviceOptions->getDecodeContent();
+        $result[Resources::ROS_HANDLER]        = $handler;
+        $result[Resources::ROS_SECONDARY_URI]  = $this->getPsrSecondaryUri();
+        $result[Resources::ROS_PRIMARY_URI]    = $this->getPsrPrimaryUri();
+
+        return $result;
+    }
+
+    /**
+     * Sends the context.
+     *
+     * @param  HttpCallContext $context The context of the request.
+     * @return \GuzzleHttp\Psr7\Response
+     */
+    protected function sendContext(HttpCallContext $context)
+    {
+        return $this->sendContextAsync($context)->wait();
+    }
+
+    /**
+     * Creates the promise to send the context.
+     *
+     * @param  HttpCallContext $context The context of the request.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    protected function sendContextAsync(HttpCallContext $context)
+    {
+        return $this->sendAsync(
+            $context->getMethod(),
+            $context->getHeaders(),
+            $context->getQueryParameters(),
+            $context->getPostParameters(),
+            $context->getPath(),
+            $context->getStatusCodes(),
+            $context->getBody(),
+            $context->getServiceOptions()
+        );
+    }
+
+    /**
+     * Throws ServiceException if the received status code is not expected.
+     *
+     * @param ResponseInterface $response The response received
+     * @param array|int         $expected The expected status codes.
+     *
+     * @return void
      *
      * @throws ServiceException
      */
-    public static function throwIfError($actual, $reason, $message, $expected)
+    public static function throwIfError(ResponseInterface $response, $expected)
     {
         $expectedStatusCodes = is_array($expected) ? $expected : array($expected);
 
-        if (!in_array($actual, $expectedStatusCodes)) {
-            throw new ServiceException($actual, $reason, $message);
+        if (!in_array($response->getStatusCode(), $expectedStatusCodes)) {
+            throw new ServiceException($response);
         }
     }
-
-    /**
-     * Adds optional header to headers if set
-     *
-     * @param array           $headers         The array of request headers.
-     * @param AccessCondition $accessCondition The access condition object.
-     *
-     * @return array
-     */
-    public function addOptionalAccessConditionHeader($headers, $accessCondition)
-    {
-        if (!is_null($accessCondition)) {
-            $header = $accessCondition->getHeader();
-
-            if ($header != Resources::EMPTY_STRING) {
-                $value = $accessCondition->getValue();
-                if ($value instanceof \DateTime) {
-                    $value = gmdate(
-                        Resources::AZURE_DATE_FORMAT,
-                        $value->getTimestamp()
-                    );
-                }
-                $headers[$header] = $value;
-            }
-        }
-
-        return $headers;
-    }
-
-    /**
-     * Adds optional header to headers if set
-     *
-     * @param array           $headers         The array of request headers.
-     * @param AccessCondition $accessCondition The access condition object.
-     *
-     * @return array
-     */
-    public function addOptionalSourceAccessConditionHeader(
-        $headers,
-        $accessCondition
-    ) {
-        if (!is_null($accessCondition)) {
-            $header     = $accessCondition->getHeader();
-            $headerName = null;
-            if (!empty($header)) {
-                switch($header) {
-                case Resources::IF_MATCH:
-                    $headerName = Resources::X_MS_SOURCE_IF_MATCH;
-                    break;
-
-                case Resources::IF_UNMODIFIED_SINCE:
-                    $headerName = Resources::X_MS_SOURCE_IF_UNMODIFIED_SINCE;
-                    break;
-
-                case Resources::IF_MODIFIED_SINCE:
-                    $headerName = Resources::X_MS_SOURCE_IF_MODIFIED_SINCE;
-                    break;
-
-                case Resources::IF_NONE_MATCH:
-                    $headerName = Resources::X_MS_SOURCE_IF_NONE_MATCH;
-                    break;
-
-                default:
-                    throw new \Exception(Resources::INVALID_ACH_MSG);
-                    break;
-                }
-            }
-            $value = $accessCondition->getValue();
-            if ($value instanceof \DateTime) {
-                $value = gmdate(
-                    Resources::AZURE_DATE_FORMAT,
-                    $value->getTimestamp()
-                );
-            }
-
-            $this->addOptionalHeader($headers, $headerName, $value);
-        }
-
-        return $headers;
-    }
-
+    
     /**
      * Adds HTTP POST parameter to the specified
      *
@@ -331,7 +497,7 @@ class ServiceRestProxy extends RestProxy
      * @return array
      */
     public function addPostParameter(
-        $postParameters,
+        array $postParameters,
         $key,
         $value
     ) {
@@ -347,10 +513,12 @@ class ServiceRestProxy extends RestProxy
      *
      * @return string
      */
-    public function groupQueryValues($values)
+    public static function groupQueryValues(array $values)
     {
         Validate::isArray($values, 'values');
         $joined = Resources::EMPTY_STRING;
+
+        sort($values);
 
         foreach ($values as $value) {
             if (!is_null($value) && !empty($value)) {
@@ -369,9 +537,9 @@ class ServiceRestProxy extends RestProxy
      *
      * @return array
      */
-    protected function addMetadataHeaders($headers, $metadata)
+    protected function addMetadataHeaders(array $headers, array $metadata = null)
     {
-        $this->validateMetadata($metadata);
+        Utilities::validateMetadata($metadata);
 
         $metadata = $this->generateMetadataHeaders($metadata);
         $headers  = array_merge($headers, $metadata);
@@ -384,16 +552,16 @@ class ServiceRestProxy extends RestProxy
      *
      * @param array $metadata user defined metadata.
      *
-     * @return array.
+     * @return array
      */
-    public function generateMetadataHeaders($metadata)
+    public function generateMetadataHeaders(array $metadata = null)
     {
         $metadataHeaders = array();
 
         if (is_array($metadata) && !is_null($metadata)) {
             foreach ($metadata as $key => $value) {
                 $headerName = Resources::X_MS_META_HEADER_PREFIX;
-                if (   strpos($value, "\r") !== false
+                if (strpos($value, "\r") !== false
                     || strpos($value, "\n") !== false
                 ) {
                     throw new \InvalidArgumentException(Resources::INVALID_META_MSG);
@@ -409,55 +577,59 @@ class ServiceRestProxy extends RestProxy
     }
 
     /**
-     * Gets metadata array by parsing them from given headers.
+     * Get the primary URI in PSR form.
      *
-     * @param array $headers HTTP headers containing metadata elements.
-     *
-     * @return array.
+     * @return Uri
      */
-    public function getMetadataArray($headers)
+    public function getPsrPrimaryUri()
     {
-        $metadata = array();
-        foreach ($headers as $key => $value) {
-            $isMetadataHeader = Utilities::startsWith(
-                strtolower($key),
-                Resources::X_MS_META_HEADER_PREFIX
-            );
-
-            if ($isMetadataHeader) {
-                // Metadata name is case-presrved and case insensitive
-                $MetadataName = str_ireplace(
-                    Resources::X_MS_META_HEADER_PREFIX,
-                    Resources::EMPTY_STRING,
-                    $key
-                );
-                $metadata[$MetadataName] = $value;
-            }
-        }
-
-        return $metadata;
+        return $this->psrPrimaryUri;
     }
 
     /**
-     * Validates the provided metadata array.
+     * Get the secondary URI in PSR form.
      *
-     * @param mix $metadata The metadata array.
-     *
-     * @return none
+     * @return Uri
      */
-    public function validateMetadata($metadata)
+    public function getPsrSecondaryUri()
     {
-        if (!is_null($metadata)) {
-            Validate::isArray($metadata, 'metadata');
-        } else {
-            $metadata = array();
-        }
+        return $this->psrSecondaryUri;
+    }
 
-        foreach ($metadata as $key => $value) {
-            Validate::isString($key, 'metadata key');
-            Validate::isString($value, 'metadata value');
+    /**
+     * Adds the header that indicates the location mode to the response header.
+     *
+     * @return  ResponseInterface
+     */
+    private static function addLocationHeaderToResponse(
+        ResponseInterface $response,
+        $locationMode
+    ) {
+        //If the response already has this header, return itself.
+        if ($response->hasHeader(Resources::X_MS_CONTINUATION_LOCATION_MODE)) {
+            return $response;
         }
+        //Otherwise, add the header that indicates the endpoint to be used if
+        //continuation token is used for subsequent request. Notice that if the
+        //response does not have location header set at the moment, it means
+        //that the user have not set a retry middleware.
+        if ($locationMode == LocationMode::PRIMARY_THEN_SECONDARY) {
+            $response = $response->withHeader(
+                Resources::X_MS_CONTINUATION_LOCATION_MODE,
+                LocationMode::PRIMARY_ONLY
+            );
+        } elseif ($locationMode == LocationMode::SECONDARY_THEN_PRIMARY) {
+            $response = $response->withHeader(
+                Resources::X_MS_CONTINUATION_LOCATION_MODE,
+                LocationMode::SECONDARY_ONLY
+            );
+        } elseif ($locationMode == LocationMode::SECONDARY_ONLY  ||
+                  $locationMode == LocationMode::PRIMARY_ONLY) {
+            $response = $response->withHeader(
+                Resources::X_MS_CONTINUATION_LOCATION_MODE,
+                $locationMode
+            );
+        }
+        return $response;
     }
 }
-
-

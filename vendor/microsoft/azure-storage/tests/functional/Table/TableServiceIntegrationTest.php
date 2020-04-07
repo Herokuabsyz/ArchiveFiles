@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -25,9 +25,8 @@
 namespace MicrosoftAzure\Storage\Tests\Functional\Table;
 
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
-use MicrosoftAzure\Storage\Common\ServiceException;
+use MicrosoftAzure\Storage\Common\Exceptions\ServiceException;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
-use MicrosoftAzure\Storage\Table\Models\BatchError;
 use MicrosoftAzure\Storage\Table\Models\BatchOperations;
 use MicrosoftAzure\Storage\Table\Models\DeleteEntityOptions;
 use MicrosoftAzure\Storage\Table\Models\EdmType;
@@ -69,7 +68,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
     private function doOneTimeSetup()
     {
-        self::$testTablesPrefix .= rand(0,1000);
+        self::$testTablesPrefix .= rand(0, 1000);
         // Setup container names array (list of container names used by
         // integration tests)
         self::$testTables = array();
@@ -95,8 +94,8 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         self::$createTable2 = self::$creatableTables[1];
 
         // Create all test containers and their content
-        $this->deleteAllTables(self::$testTables);
-        $this->deleteAllTables(self::$creatableTables);
+        $this->deleteTables('', self::$testTables);
+        $this->deleteTables('', self::$creatableTables);
         $this->createTables(self::$testTablesPrefix, self::$testTables);
     }
 
@@ -121,7 +120,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
     private function createTables($prefix, $list)
     {
         $containers = $this->listTables($prefix);
-        foreach($list as $item)  {
+        foreach ($list as $item) {
             if (!in_array($item, $containers)) {
                 $this->createTable($item);
             }
@@ -131,7 +130,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
     private function deleteTables($prefix, $list)
     {
         $containers = $this->listTables($prefix);
-        foreach($list as $item)  {
+        foreach ($list as $item) {
             if (in_array($item, $containers)) {
                 $this->safeDeleteTable($item);
             }
@@ -140,7 +139,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
     private function deleteAllTables($list)
     {
-        foreach($list as $item)  {
+        foreach ($list as $item) {
             $this->safeDeleteTable($item);
         }
     }
@@ -151,7 +150,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $qto = new QueryTablesOptions();
         $qto->setPrefix($prefix);
         $list = $this->restProxy->queryTables($qto);
-        foreach($list->getTables() as $item)  {
+        foreach ($list->getTables() as $item) {
             array_push($result, $item);
         }
         return $result;
@@ -178,7 +177,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
                 throw $e;
             }
         }
-        if($shouldReturn) {
+        if ($shouldReturn) {
             return;
         }
 
@@ -187,8 +186,8 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $this->assertNotNull($props->getLogging(), '$props->getLogging');
         $this->assertNotNull($props->getLogging()->getRetentionPolicy(), '$props->getLogging()->getRetentionPolicy');
         $this->assertNotNull($props->getLogging()->getVersion(), '$props->getLogging()->getVersion');
-        $this->assertNotNull($props->getMetrics()->getRetentionPolicy(), '$props->getMetrics()->getRetentionPolicy');
-        $this->assertNotNull($props->getMetrics()->getVersion(), '$props->getMetrics()->getVersion');
+        $this->assertNotNull($props->getHourMetrics()->getRetentionPolicy(), '$props->getHourMetrics()->getRetentionPolicy');
+        $this->assertNotNull($props->getHourMetrics()->getVersion(), '$props->getHourMetrics()->getVersion');
     }
 
     /**
@@ -213,7 +212,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
                 throw $e;
             }
         }
-        if($shouldReturn) {
+        if ($shouldReturn) {
             return;
         }
 
@@ -228,8 +227,8 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $this->assertNotNull($props->getLogging()->getRetentionPolicy(), '$props->getLogging()->getRetentionPolicy');
         $this->assertNotNull($props->getLogging()->getVersion(), '$props->getLogging()->getVersion');
         $this->assertTrue($props->getLogging()->getRead(), '$props->getLogging()->getRead');
-        $this->assertNotNull($props->getMetrics()->getRetentionPolicy(), '$props->getMetrics()->getRetentionPolicy');
-        $this->assertNotNull($props->getMetrics()->getVersion(), '$props->getMetrics()->getVersion');
+        $this->assertNotNull($props->getHourMetrics()->getRetentionPolicy(), '$props->getHourMetrics()->getRetentionPolicy');
+        $this->assertNotNull($props->getHourMetrics()->getVersion(), '$props->getHourMetrics()->getVersion');
     }
 
     /**
@@ -342,33 +341,73 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $this->assertNotNull($result->getEntity(), '$result->getEntity()');
 
         $this->assertEquals('001', $result->getEntity()->getPartitionKey(), '$result->getEntity()->getPartitionKey()');
-        $this->assertEquals('insertEntityWorks', $result->getEntity()->getRowKey(), '$result->getEntity()->getRowKey()');
+        $this->assertEquals(
+            'insertEntityWorks',
+            $result->getEntity()->getRowKey(),
+            '$result->getEntity()->getRowKey()'
+        );
         $this->assertNotNull($result->getEntity()->getTimestamp(), '$result->getEntity()->getTimestamp()');
         $this->assertNotNull($result->getEntity()->getETag(), '$result->getEntity()->getETag()');
 
         $this->assertNotNull($result->getEntity()->getProperty('test'), '$result->getEntity()->getProperty(\'test\')');
-        $this->assertEquals(true, $result->getEntity()->getProperty('test')->getValue(), '$result->getEntity()->getProperty(\'test\')->getValue()');
+        $this->assertEquals(
+            true,
+            $result->getEntity()->getProperty('test')->getValue(),
+            '$result->getEntity()->getProperty(\'test\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test2'), '$result->getEntity()->getProperty(\'test2\')');
-        $this->assertEquals('value', $result->getEntity()->getProperty('test2')->getValue(), '$result->getEntity()->getProperty(\'test2\')->getValue()');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test2'),
+            '$result->getEntity()->getProperty(\'test2\')'
+        );
+        $this->assertEquals(
+            'value',
+            $result->getEntity()->getProperty('test2')->getValue(),
+            '$result->getEntity()->getProperty(\'test2\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test3'), '$result->getEntity()->getProperty(\'test3\')');
-        $this->assertEquals(3, $result->getEntity()->getProperty('test3')->getValue(), '$result->getEntity()->getProperty(\'test3\')->getValue()');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test3'),
+            '$result->getEntity()->getProperty(\'test3\')'
+        );
+        $this->assertEquals(
+            3,
+            $result->getEntity()->getProperty('test3')->getValue(),
+            '$result->getEntity()->getProperty(\'test3\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test4'), '$result->getEntity()->getProperty(\'test4\')');
-        $this->assertEquals('12345678901', $result->getEntity()->getProperty('test4')->getValue(), '$result->getEntity()->getProperty(\'test4\')->getValue()');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test4'),
+            '$result->getEntity()->getProperty(\'test4\')'
+        );
+        $this->assertEquals(
+            '12345678901',
+            $result->getEntity()->getProperty('test4')->getValue(),
+            '$result->getEntity()->getProperty(\'test4\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test5'), '$result->getEntity()->getProperty(\'test5\')');
-        $this->assertTrue($result->getEntity()->getProperty('test5')->getValue() instanceof \DateTime, '$result->getEntity()->getProperty(\'test5\')->getValue() instanceof \DateTime');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test5'),
+            '$result->getEntity()->getProperty(\'test5\')'
+        );
+        $this->assertTrue(
+            $result->getEntity()->getProperty('test5')->getValue() instanceof \DateTime,
+            '$result->getEntity()->getProperty(\'test5\')->getValue() instanceof \DateTime'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test6'), '$result->getEntity()->getProperty(\'test6\')');
         $returnedBinaryData = $result->getEntity()->getProperty('test6')->getValue();
         $this->assertTrue(is_string($returnedBinaryData), 'binary data is string');
         $this->assertEquals(strlen($binaryData), strlen($returnedBinaryData), 'binary data lengths are the same');
         $this->assertEquals($binaryData, $returnedBinaryData, 'binary data are the same');
 
-        $this->assertNotNull($result->getEntity()->getProperty('test7'), '$result->getEntity()->getProperty(\'test7\')');
-        $this->assertTrue(is_string($result->getEntity()->getProperty('test7')->getValue()), 'is_string($result->getEntity()->getProperty(\'test7\')->getValue())');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test7'),
+            '$result->getEntity()->getProperty(\'test7\')'
+        );
+        $this->assertTrue(
+            is_string($result->getEntity()->getProperty('test7')->getValue()),
+            'is_string($result->getEntity()->getProperty(\'test7\')->getValue())'
+        );
         $this->assertEquals($uuid, $result->getEntity()->getPropertyValue('test7'), 'GUIDs are the same');
     }
     /**
@@ -412,7 +451,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $entity->addProperty('test5', EdmType::DATETIME, new \DateTime());
 
         // Act
-        if($this->isEmulated()) {
+        if ($this->isEmulated()) {
             try {
                 $this->restProxy->insertOrReplaceEntity(self::$testTable2, $entity);
                 $this->assertFalse($this->isEmulated(), 'Expect failure when in emulator');
@@ -446,7 +485,7 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $entity->addProperty('test5', EdmType::DATETIME, new \DateTime());
 
         // Act
-        if($this->isEmulated()) {
+        if ($this->isEmulated()) {
             try {
                 $this->restProxy->insertOrMergeEntity(self::$testTable2, $entity);
                 $this->assertFalse($this->isEmulated(), 'Expect failure when in emulator');
@@ -510,7 +549,11 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         // Act
         $result = $this->restProxy->insertEntity(self::$testTable2, $entity);
 
-        $this->restProxy->deleteEntity(self::$testTable2, $result->getEntity()->getPartitionKey(), $result->getEntity()->getRowKey());
+        $this->restProxy->deleteEntity(
+            self::$testTable2,
+            $result->getEntity()->getPartitionKey(),
+            $result->getEntity()->getRowKey()
+        );
 
         // Assert
         $this->assertTrue(true, 'expect no errors');
@@ -562,31 +605,72 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $result4 = $this->restProxy->insertEntity(self::$testTable8, $entity4);
         $result5 = $this->restProxy->insertEntity(self::$testTable8, $entity5);
 
-        $this->restProxy->deleteEntity(self::$testTable8, $result1->getEntity()->getPartitionKey(), $result1->getEntity()->getRowKey());
-        $this->restProxy->deleteEntity(self::$testTable8, $result2->getEntity()->getPartitionKey(), $result2->getEntity()->getRowKey());
-        $this->restProxy->deleteEntity(self::$testTable8, $result3->getEntity()->getPartitionKey(), $result3->getEntity()->getRowKey());
-        $this->restProxy->deleteEntity(self::$testTable8, $result4->getEntity()->getPartitionKey(), $result4->getEntity()->getRowKey());
-        $this->restProxy->deleteEntity(self::$testTable8, $result5->getEntity()->getPartitionKey(), $result5->getEntity()->getRowKey());
+        $this->restProxy->deleteEntity(
+            self::$testTable8,
+            $result1->getEntity()->getPartitionKey(),
+            $result1->getEntity()->getRowKey()
+        );
+        $this->restProxy->deleteEntity(
+            self::$testTable8,
+            $result2->getEntity()->getPartitionKey(),
+            $result2->getEntity()->getRowKey()
+        );
+        $this->restProxy->deleteEntity(
+            self::$testTable8,
+            $result3->getEntity()->getPartitionKey(),
+            $result3->getEntity()->getRowKey()
+        );
+        $this->restProxy->deleteEntity(
+            self::$testTable8,
+            $result4->getEntity()->getPartitionKey(),
+            $result4->getEntity()->getRowKey()
+        );
+        $this->restProxy->deleteEntity(
+            self::$testTable8,
+            $result5->getEntity()->getPartitionKey(),
+            $result5->getEntity()->getRowKey()
+        );
 
         // Assert
         try {
-            $this->restProxy->getEntity(self::$testTable8, $result1->getEntity()->getPartitionKey(), $result1->getEntity()->getRowKey());
+            $this->restProxy->getEntity(
+                self::$testTable8,
+                $result1->getEntity()->getPartitionKey(),
+                $result1->getEntity()->getRowKey()
+            );
             $this->fail('Expect an exception when getting an entity that does not exist');
         } catch (ServiceException $e) {
             $this->assertEquals(TestResources::STATUS_NOT_FOUND, $e->getCode(), 'getCode');
         }
 
         $qopts = new QueryEntitiesOptions();
-        $qopts->setFilter(Filter::applyEq(Filter::applyPropertyName('RowKey'), Filter::applyConstant('key\'with\'quotes', EdmType::STRING)));
+        $qopts->setFilter(
+            Filter::applyEq(
+                Filter::applyPropertyName('RowKey'),
+                Filter::applyConstant(
+                    'key\'with\'quotes',
+                    EdmType::STRING
+                )
+            )
+        );
         $assertResult2 = $this->restProxy->queryEntities(self::$testTable8, $qopts);
 
         $this->assertEquals(0, count($assertResult2->getEntities()), 'entities returned');
 
         $assertResult3 = $this->restProxy->queryEntities(self::$testTable8);
-        foreach($assertResult3->getEntities() as $entity)  {
-            $this->assertFalse($entity3->getRowKey() == $entity->getRowKey(), 'Entity3 should be removed from the table');
-            $this->assertFalse($entity4->getRowKey() == $entity->getRowKey(), 'Entity4 should be removed from the table');
-            $this->assertFalse($entity5->getRowKey() == $entity->getRowKey(), 'Entity5 should be removed from the table');
+        foreach ($assertResult3->getEntities() as $entity) {
+            $this->assertFalse(
+                $entity3->getRowKey() == $entity->getRowKey(),
+                'Entity3 should be removed from the table'
+            );
+            $this->assertFalse(
+                $entity4->getRowKey() == $entity->getRowKey(),
+                'Entity4 should be removed from the table'
+            );
+            $this->assertFalse(
+                $entity5->getRowKey() == $entity->getRowKey(),
+                'Entity5 should be removed from the table'
+            );
         }
     }
 
@@ -611,8 +695,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
         $deo = new DeleteEntityOptions();
         $deo->setETag($result->getEntity()->getETag());
-        $this->restProxy->deleteEntity(self::$testTable2, $result->getEntity()->getPartitionKey(), $result->getEntity()->getRowKey(),
-                $deo);
+        $this->restProxy->deleteEntity(
+            self::$testTable2,
+            $result->getEntity()->getPartitionKey(),
+            $result->getEntity()->getRowKey(),
+            $deo
+        );
 
         // Assert
         $this->assertTrue(true, 'expect no errors');
@@ -640,7 +728,11 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
         // Act
         $insertResult = $this->restProxy->insertEntity(self::$testTable2, $entity);
-        $result = $this->restProxy->getEntity(self::$testTable2, $insertResult->getEntity()->getPartitionKey(), $insertResult->getEntity()->getRowKey());
+        $result = $this->restProxy->getEntity(
+            self::$testTable2,
+            $insertResult->getEntity()->getPartitionKey(),
+            $insertResult->getEntity()->getRowKey()
+        );
 
         // Assert
         $this->assertNotNull($result, '$result');
@@ -649,31 +741,70 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $this->assertEquals('001', $result->getEntity()->getPartitionKey(), '$result->getEntity()->getPartitionKey()');
         $this->assertEquals('getEntityWorks', $result->getEntity()->getRowKey(), '$result->getEntity()->getRowKey()');
         $this->assertNotNull($result->getEntity()->getTimestamp(), '$result->getEntity()->getTimestamp()');
-        $this->assertNotNull($result->getEntity()->getETag(), '$result->getEntity()->getETag()');
 
         $this->assertNotNull($result->getEntity()->getProperty('test'), '$result->getEntity()->getProperty(\'test\')');
-        $this->assertEquals(true, $result->getEntity()->getProperty('test')->getValue(), '$result->getEntity()->getProperty(\'test\')->getValue()');
+        $this->assertEquals(
+            true,
+            $result->getEntity()->getProperty('test')->getValue(),
+            '$result->getEntity()->getProperty(\'test\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test2'), '$result->getEntity()->getProperty(\'test2\')');
-        $this->assertEquals('value', $result->getEntity()->getProperty('test2')->getValue(), '$result->getEntity()->getProperty(\'test2\')->getValue()');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test2'),
+            '$result->getEntity()->getProperty(\'test2\')'
+        );
+        $this->assertEquals(
+            'value',
+            $result->getEntity()->getProperty('test2')->getValue(),
+            '$result->getEntity()->getProperty(\'test2\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test3'), '$result->getEntity()->getProperty(\'test3\')');
-        $this->assertEquals(3, $result->getEntity()->getProperty('test3')->getValue(), '$result->getEntity()->getProperty(\'test3\')->getValue()');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test3'),
+            '$result->getEntity()->getProperty(\'test3\')'
+        );
+        $this->assertEquals(
+            3,
+            $result->getEntity()->getProperty('test3')->getValue(),
+            '$result->getEntity()->getProperty(\'test3\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test4'), '$result->getEntity()->getProperty(\'test4\')');
-        $this->assertEquals('12345678901', $result->getEntity()->getProperty('test4')->getValue(), '$result->getEntity()->getProperty(\'test4\')->getValue()');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test4'),
+            '$result->getEntity()->getProperty(\'test4\')'
+        );
+        $this->assertEquals(
+            '12345678901',
+            $result->getEntity()->getProperty('test4')->getValue(),
+            '$result->getEntity()->getProperty(\'test4\')->getValue()'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test5'), '$result->getEntity()->getProperty(\'test5\')');
-        $this->assertTrue($result->getEntity()->getProperty('test5')->getValue() instanceof \DateTime, '$result->getEntity()->getProperty(\'test5\')->getValue() instanceof \DateTime');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test5'),
+            '$result->getEntity()->getProperty(\'test5\')'
+        );
+        $this->assertTrue(
+            $result->getEntity()->getProperty('test5')->getValue() instanceof \DateTime,
+            '$result->getEntity()->getProperty(\'test5\')->getValue() instanceof \DateTime'
+        );
 
-        $this->assertNotNull($result->getEntity()->getProperty('test6'), '$result->getEntity()->getProperty(\'test6\')');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test6'),
+            '$result->getEntity()->getProperty(\'test6\')'
+        );
         $returnedBinaryData = $result->getEntity()->getProperty('test6')->getValue();
         $this->assertTrue(is_string($returnedBinaryData), 'binary data is string');
         $this->assertEquals(strlen($binaryData), strlen($returnedBinaryData), 'binary data lengths are the same');
         $this->assertEquals($binaryData, $returnedBinaryData, 'binary data are the same');
 
-        $this->assertNotNull($result->getEntity()->getProperty('test7'), '$result->getEntity()->getProperty(\'test7\')');
-        $this->assertTrue(is_string($result->getEntity()->getProperty('test7')->getValue()), 'is_string($result->getEntity()->getProperty(\'test7\')->getValue())');
+        $this->assertNotNull(
+            $result->getEntity()->getProperty('test7'),
+            '$result->getEntity()->getProperty(\'test7\')'
+        );
+        $this->assertTrue(
+            is_string($result->getEntity()->getProperty('test7')->getValue()),
+            'is_string($result->getEntity()->getProperty(\'test7\')->getValue())'
+        );
         $this->assertEquals($uuid, $result->getEntity()->getPropertyValue('test7'), 'GUIDs are the same');
     }
 
@@ -708,22 +839,40 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $this->assertEquals('001', $entities[0]->getPartitionKey(), '$entities[0]->getPartitionKey()');
         $this->assertEquals('queryEntitiesWorks', $entities[0]->getRowKey(), '$entities[0]->getRowKey()');
         $this->assertNotNull($entities[0]->getTimestamp(), '$entities[0]->getTimestamp()');
-        $this->assertNotNull($entities[0]->getETag(), '$entities[0]->getETag()');
 
         $this->assertNotNull($entities[0]->getProperty('test'), '$entities[0]->getProperty(\'test\')');
-        $this->assertEquals(true, $entities[0]->getProperty('test')->getValue(), '$entities[0]->getProperty(\'test\')->getValue()');
+        $this->assertEquals(
+            true,
+            $entities[0]->getProperty('test')->getValue(),
+            '$entities[0]->getProperty(\'test\')->getValue()'
+        );
 
         $this->assertNotNull($entities[0]->getProperty('test2'), '$entities[0]->getProperty(\'test2\')');
-        $this->assertEquals('value', $entities[0]->getProperty('test2')->getValue(), '$entities[0]->getProperty(\'test2\')->getValue()');
+        $this->assertEquals(
+            'value',
+            $entities[0]->getProperty('test2')->getValue(),
+            '$entities[0]->getProperty(\'test2\')->getValue()'
+        );
 
         $this->assertNotNull($entities[0]->getProperty('test3'), '$entities[0]->getProperty(\'test3\')');
-        $this->assertEquals(3, $entities[0]->getProperty('test3')->getValue(), '$entities[0]->getProperty(\'test3\')->getValue()');
+        $this->assertEquals(
+            3,
+            $entities[0]->getProperty('test3')->getValue(),
+            '$entities[0]->getProperty(\'test3\')->getValue()'
+        );
 
         $this->assertNotNull($entities[0]->getProperty('test4'), '$entities[0]->getProperty(\'test4\')');
-        $this->assertEquals('12345678901', $entities[0]->getProperty('test4')->getValue(), '$entities[0]->getProperty(\'test4\')->getValue()');
+        $this->assertEquals(
+            '12345678901',
+            $entities[0]->getProperty('test4')->getValue(),
+            '$entities[0]->getProperty(\'test4\')->getValue()'
+        );
 
         $this->assertNotNull($entities[0]->getProperty('test5'), '$entities[0]->getProperty(\'test5\')');
-        $this->assertTrue($entities[0]->getProperty('test5')->getValue() instanceof \DateTime, '$entities[0]->getProperty(\'test5\')->getValue() instanceof \DateTime');
+        $this->assertTrue(
+            $entities[0]->getProperty('test5')->getValue() instanceof \DateTime,
+            '$entities[0]->getProperty(\'test5\')->getValue() instanceof \DateTime'
+        );
     }
 
     /**
@@ -760,7 +909,9 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
             $entryCount += count($result->getEntities());
 
-            if (is_null($nextPartitionKey)) break;
+            if (is_null($nextPartitionKey)) {
+                break;
+            }
 
             $nextPartitionKey = $result->getNextPartitionKey();
             $nextRowKey = $result->getNextRowKey();
@@ -797,7 +948,10 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
         {
             // Act
-            $f = Filter::applyEq(Filter::applyPropertyName('RowKey'), Filter::applyConstant('queryEntitiesWithFilterWorks-3', EdmType::STRING));
+            $f = Filter::applyEq(
+                Filter::applyPropertyName('RowKey'),
+                Filter::applyConstant('queryEntitiesWithFilterWorks-3', EdmType::STRING)
+            );
             $q =new Query();
             $q->setFilter($f);
             $qeo = new QueryEntitiesOptions();
@@ -829,7 +983,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         {
             // Act
             $q = new Query();
-            $q->setFilter(Filter::applyEq(Filter::applyPropertyName('test'), Filter::applyConstant(true, EdmType::BOOLEAN)));
+            $q->setFilter(
+                Filter::applyEq(
+                    Filter::applyPropertyName('test'),
+                    Filter::applyConstant(true, EdmType::BOOLEAN)
+                )
+            );
             $qeo = new QueryEntitiesOptions();
             $qeo->setQuery($q);
             $result = $this->restProxy->queryEntities($table, $qeo);
@@ -842,7 +1001,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         {
             // Act
             $q = new Query();
-            $q->setFilter(Filter::applyEq(Filter::applyPropertyName('test2'), Filter::applyConstant('\'value" 3', EdmType::STRING)));
+            $q->setFilter(
+                Filter::applyEq(
+                    Filter::applyPropertyName('test2'),
+                    Filter::applyConstant('\'value" 3', EdmType::STRING)
+                )
+            );
             $qeo = new QueryEntitiesOptions();
             $qeo->setQuery($q);
             $result = $this->restProxy->queryEntities($table, $qeo);
@@ -857,7 +1021,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         {
             // Act
             $q = new Query();
-            $q->setFilter(Filter::applyEq(Filter::applyPropertyName('test4'), Filter::applyConstant(12345678903, EdmType::INT64)));
+            $q->setFilter(
+                Filter::applyEq(
+                    Filter::applyPropertyName('test4'),
+                    Filter::applyConstant(12345678903, EdmType::INT64)
+                )
+            );
             $qeo = new QueryEntitiesOptions();
             $qeo->setQuery($q);
             $result = $this->restProxy->queryEntities($table, $qeo);
@@ -872,7 +1041,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         {
             // Act
             $q = new Query();
-            $q->setFilter(Filter::applyEq(Filter::applyPropertyName('test5'), Filter::applyConstant(new \DateTime('2012-01-03'), EdmType::DATETIME)));
+            $q->setFilter(
+                Filter::applyEq(
+                    Filter::applyPropertyName('test5'),
+                    Filter::applyConstant(new \DateTime('2012-01-03'), EdmType::DATETIME)
+                )
+            );
             $qeo = new QueryEntitiesOptions();
             $qeo->setQuery($q);
             $result = $this->restProxy->queryEntities($table, $qeo);
@@ -888,7 +1062,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
             // Act
             $q = new Query();
             $ent3 = $entities[3];
-            $q->setFilter(Filter::applyEq(Filter::applyPropertyName('test6'), Filter::applyConstant(chr(3), EdmType::BINARY)));
+            $q->setFilter(
+                Filter::applyEq(
+                    Filter::applyPropertyName('test6'),
+                    Filter::applyConstant(chr(3), EdmType::BINARY)
+                )
+            );
             $qeo = new QueryEntitiesOptions();
             $qeo->setQuery($q);
             $result = $this->restProxy->queryEntities($table, $qeo);
@@ -904,7 +1083,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
             // Act
             $q = new Query();
             $ent3 = $entities[3];
-            $q->setFilter(Filter::applyEq(Filter::applyPropertyName('test7'), Filter::applyConstant($ent3->getPropertyValue('test7'), EdmType::GUID)));
+            $q->setFilter(
+                Filter::applyEq(
+                    Filter::applyPropertyName('test7'),
+                    Filter::applyConstant($ent3->getPropertyValue('test7'), EdmType::GUID)
+                )
+            );
             $qeo = new QueryEntitiesOptions();
             $qeo->setQuery($q);
             $result = $this->restProxy->queryEntities($table, $qeo);
@@ -1116,7 +1300,6 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         // Act
         $batchOperations = new BatchOperations();
         for ($i = 0; $i < $insertCount; $i++) {
-
             $entity = new Entity();
             $entity->setPartitionKey($partitionKey);
             $entity->setRowKey('batchWorks-' . $i);
@@ -1139,23 +1322,42 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
             $this->assertEquals('001', $entity->getPartitionKey(), '$entity->getPartitionKey()');
             $this->assertEquals('batchWorks-' . $i, $entity->getRowKey(), '$entity->getRowKey()');
-            $this->assertNotNull($entity->getTimestamp(), '$entity->getTimestamp()');                     
+            $this->assertNotNull($entity->getTimestamp(), '$entity->getTimestamp()');
             $this->assertNotNull($entity->getETag(), '$entity->getETag()');
 
             $this->assertNotNull($entity->getProperty('test'), '$entity->getProperty(\'test\')');
-            $this->assertEquals(true, $entity->getProperty('test')->getValue(), '$entity->getProperty(\'test\')->getValue()');
+            $this->assertEquals(
+                true,
+                $entity->getProperty('test')->getValue(),
+                '$entity->getProperty(\'test\')->getValue()'
+            );
 
             $this->assertNotNull($entity->getProperty('test2'), '$entity->getProperty(\'test2\')');
-            $this->assertEquals('value', $entity->getProperty('test2')->getValue(), '$entity->getProperty(\'test2\')->getValue()');
+            $this->assertEquals(
+                'value',
+                $entity->getProperty('test2')->getValue(),
+                '$entity->getProperty(\'test2\')->getValue()'
+            );
 
             $this->assertNotNull($entity->getProperty('test3'), '$entity->getProperty(\'test3\')');
-            $this->assertEquals(3, $entity->getProperty('test3')->getValue(), '$entity->getProperty(\'test3\')->getValue()');
+            $this->assertEquals(
+                3,
+                $entity->getProperty('test3')->getValue(),
+                '$entity->getProperty(\'test3\')->getValue()'
+            );
 
             $this->assertNotNull($entity->getProperty('test4'), '$entity->getProperty(\'test4\')');
-            $this->assertEquals('12345678901', $entity->getProperty('test4')->getValue(), '$entity->getProperty(\'test4\')->getValue()');
+            $this->assertEquals(
+                '12345678901',
+                $entity->getProperty('test4')->getValue(),
+                '$entity->getProperty(\'test4\')->getValue()'
+            );
 
             $this->assertNotNull($entity->getProperty('test5'), '$entity->getProperty(\'test5\')');
-            $this->assertTrue($entity->getProperty('test5')->getValue() instanceof \DateTime, '$entity->getProperty(\'test5\')->getValue() instanceof \DateTime');
+            $this->assertTrue(
+                $entity->getProperty('test5')->getValue() instanceof \DateTime,
+                '$entity->getProperty(\'test5\')->getValue() instanceof \DateTime'
+            );
         }
     }
 
@@ -1226,7 +1428,12 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         $entity->addProperty('test4', EdmType::INT64, '12345678901');
         $entity->addProperty('test5', EdmType::DATETIME, new \DateTime());
         $batchOperations->addInsertEntity($table, $entity);
-        $batchOperations->addDeleteEntity($table, $entity1->getPartitionKey(), $entity1->getRowKey(), $entity1->getETag());
+        $batchOperations->addDeleteEntity(
+            $table,
+            $entity1->getPartitionKey(),
+            $entity1->getRowKey(),
+            $entity1->getETag()
+        );
         $entity2->addProperty('test3', EdmType::INT32, 5);
         $batchOperations->addUpdateEntity($table, $entity2);
         $entity3->addProperty('test3', EdmType::INT32, 5);
@@ -1258,7 +1465,11 @@ class TableServiceIntegrationTest extends IntegrationTestBase
 
         // Assert
         $this->assertNotNull($result, '$result');
-        $this->assertEquals(count($batchOperations->getOperations()), count($result->getEntries()), 'count($result->getEntries())');
+        $this->assertEquals(
+            count($batchOperations->getOperations()),
+            count($result->getEntries()),
+            'count($result->getEntries())'
+        );
 
         $ents = $result->getEntries();
         $this->assertTrue($ents[0] instanceof InsertEntityResult, '$result->getEntries()->get(0)->getClass()');
@@ -1309,21 +1520,26 @@ class TableServiceIntegrationTest extends IntegrationTestBase
         // The $entity1 still has the original etag from the first submit,
         // so this update should fail, because another update was already made.
         $entity1->addProperty('test', EdmType::INT32, 3);
-        $batchOperations->addDeleteEntity($table, $entity1->getPartitionKey(), $entity1->getRowKey(), $entity1->getETag());
+        $batchOperations->addDeleteEntity(
+            $table,
+            $entity1->getPartitionKey(),
+            $entity1->getRowKey(),
+            $entity1->getETag()
+        );
         $batchOperations->addUpdateEntity($table, $entity2);
         $batchOperations->addInsertEntity($table, $entity3);
 
-        $result = $this->restProxy->batch($batchOperations);
+        $batchErrored = false;
+        $code = 200;
+        try {
+            $result = $this->restProxy->batch($batchOperations);
+        } catch (ServiceException $e) {
+            $batchErrored = true;
+            $code = intval($e->getCode());
+        }
 
         // Assert
-        $this->assertNotNull($result, '$result');
-        $entries = $result->getEntries();
-        $this->assertEquals(1, count($entries), 'count($result->getEntries())');
-        $this->assertNotNull($entries[0], 'First $result should not be null');
-        $this->assertTrue($entries[0] instanceof BatchError, 'First $result type');
-        $error = $entries[0];
-        $this->assertEquals(412, $error->getError()->getCode(), 'First $result status code');
+        $this->assertTrue($batchErrored, 'Batch should have returned error');
+        $this->assertEquals(412, $code, 'Error\'s status code');
     }
 }
-
-

@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,29 +23,32 @@
  */
 
 namespace MicrosoftAzure\Storage\Queue;
+
+use MicrosoftAzure\Storage\Common\Internal\Http\HttpFormatter;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
-use MicrosoftAzure\Storage\Common\Internal\Validate;
-use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Common\Internal\ServiceRestProxy;
-use MicrosoftAzure\Storage\Common\Models\GetServicePropertiesResult;
-use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
+use MicrosoftAzure\Storage\Common\Internal\ServiceRestTrait;
+use MicrosoftAzure\Storage\Common\Internal\Utilities;
+use MicrosoftAzure\Storage\Common\Internal\Validate;
+use MicrosoftAzure\Storage\Common\LocationMode;
 use MicrosoftAzure\Storage\Queue\Internal\IQueue;
-use MicrosoftAzure\Storage\Queue\Models\ListQueuesOptions;
-use MicrosoftAzure\Storage\Queue\Models\ListQueuesResult;
-use MicrosoftAzure\Storage\Queue\Models\CreateQueueOptions;
-use MicrosoftAzure\Storage\Queue\Models\QueueServiceOptions;
-use MicrosoftAzure\Storage\Queue\Models\GetQueueMetadataResult;
 use MicrosoftAzure\Storage\Queue\Models\CreateMessageOptions;
-use MicrosoftAzure\Storage\Queue\Models\QueueMessage;
+use MicrosoftAzure\Storage\Queue\Models\CreateMessageResult;
+use MicrosoftAzure\Storage\Queue\Models\CreateQueueOptions;
+use MicrosoftAzure\Storage\Queue\Models\GetQueueMetadataResult;
 use MicrosoftAzure\Storage\Queue\Models\ListMessagesOptions;
 use MicrosoftAzure\Storage\Queue\Models\ListMessagesResult;
+use MicrosoftAzure\Storage\Queue\Models\ListQueuesOptions;
+use MicrosoftAzure\Storage\Queue\Models\ListQueuesResult;
 use MicrosoftAzure\Storage\Queue\Models\PeekMessagesOptions;
 use MicrosoftAzure\Storage\Queue\Models\PeekMessagesResult;
+use MicrosoftAzure\Storage\Queue\Models\QueueACL;
+use MicrosoftAzure\Storage\Queue\Models\QueueMessage;
+use MicrosoftAzure\Storage\Queue\Models\QueueServiceOptions;
 use MicrosoftAzure\Storage\Queue\Models\UpdateMessageResult;
-use MicrosoftAzure\Storage\Common\Internal\HttpFormatter;
 
 /**
- * This class constructs HTTP requests and receive HTTP responses for queue 
+ * This class constructs HTTP requests and receive HTTP responses for queue
  * service layer.
  *
  * @category  Microsoft
@@ -53,39 +56,49 @@ use MicrosoftAzure\Storage\Common\Internal\HttpFormatter;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class QueueRestProxy extends ServiceRestProxy implements IQueue
 {
+    use ServiceRestTrait;
+
     /**
      * Lists all queues in the storage account.
-     * 
+     *
      * @param ListQueuesOptions $options The optional list queue options.
-     * 
-     * @return MicrosoftAzure\Storage\Queue\Models\ListQueuesResult
+     *
+     * @return ListQueuesResult
      */
-    public function listQueues($options = null)
+    public function listQueues(ListQueuesOptions $options = null)
+    {
+        return $this->listQueuesAsync($options)->wait();
+    }
+
+    /**
+     * Creates promise to list all queues in the storage account.
+     *
+     * @param ListQueuesOptions $options The optional list queue options.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function listQueuesAsync(ListQueuesOptions $options = null)
     {
         $method      = Resources::HTTP_GET;
         $headers     = array();
         $postParams  = array();
         $queryParams = array();
         $path        = Resources::EMPTY_STRING;
-        $statusCode  = Resources::STATUS_OK;
         
         if (is_null($options)) {
             $options = new ListQueuesOptions();
         }
         
-        $timeout    = $options->getTimeout();
         $maxResults = $options->getMaxResults();
         $include    = $options->getIncludeMetadata();
         $include    = $include ? 'metadata' : null;
         $prefix     = $options->getPrefix();
-        $marker     = $options->getMarker();
+        $marker     = $options->getNextMarker();
         
-        $this->addOptionalQueryParam($queryParams, Resources::QP_TIMEOUT, $timeout);
         $this->addOptionalQueryParam($queryParams, Resources::QP_COMP, 'list');
         $this->addOptionalQueryParam($queryParams, Resources::QP_PREFIX, $prefix);
         $this->addOptionalQueryParam($queryParams, Resources::QP_MARKER, $marker);
@@ -95,38 +108,67 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
             Resources::QP_MAX_RESULTS,
             $maxResults
         );
+
+        $dataSerializer = $this->dataSerializer;
         
-        $response = $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode
-        );
-        $parsed   = $this->dataSerializer->unserialize($response->getBody());
-        
-        return ListQueuesResult::create($parsed);
+        return $this->sendAsync(
+            $method,
+            $headers,
+            $queryParams,
+            $postParams,
+            $path,
+            Resources::STATUS_OK,
+            Resources::EMPTY_STRING,
+            $options
+        )->then(function ($response) use ($dataSerializer) {
+            $parsed = $dataSerializer->unserialize($response->getBody());
+            return ListQueuesResult::create(
+                $parsed,
+                Utilities::getLocationFromHeaders($response->getHeaders())
+            );
+        }, null);
     }
 
     /**
      * Clears all messages from the queue.
-     * 
-     * If a queue contains a large number of messages, Clear Messages may time out 
-     * before all messages have been deleted. In this case the Queue service will 
-     * return status code 500 (Internal Server Error), with the additional error 
-     * code OperationTimedOut. If the operation times out, the client should 
-     * continue to retry Clear Messages until it succeeds, to ensure that all 
+     *
+     * If a queue contains a large number of messages, Clear Messages may time out
+     * before all messages have been deleted. In this case the Queue service will
+     * return status code 500 (Internal Server Error), with the additional error
+     * code OperationTimedOut. If the operation times out, the client should
+     * continue to retry Clear Messages until it succeeds, to ensure that all
      * messages have been deleted.
-     * 
+     *
      * @param string              $queueName The name of the queue.
      * @param QueueServiceOptions $options   The optional parameters.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function clearMessages($queueName, $options = null)
+    public function clearMessages($queueName, QueueServiceOptions $options = null)
     {
-        Validate::isString($queueName, 'queueName');
+        $this->clearMessagesAsync($queueName, $options)->wait();
+    }
+
+    /**
+     * Creates promise to clear all messages from the queue.
+     *
+     * If a queue contains a large number of messages, Clear Messages may time out
+     * before all messages have been deleted. In this case the Queue service will
+     * return status code 500 (Internal Server Error), with the additional error
+     * code OperationTimedOut. If the operation times out, the client should
+     * continue to retry Clear Messages until it succeeds, to ensure that all
+     * messages have been deleted.
+     *
+     * @param string              $queueName The name of the queue.
+     * @param QueueServiceOptions $options   The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function clearMessagesAsync(
+        $queueName,
+        QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
         
         $method      = Resources::HTTP_DELETE;
@@ -135,45 +177,61 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $queryParams = array();
         $path        = $queueName . '/messages';
         $body        = Resources::EMPTY_STRING;
-        $statusCode  = Resources::STATUS_NO_CONTENT;
         
         if (is_null($options)) {
             $options = new QueueServiceOptions();
         }
         
-        $this->addOptionalQueryParam(
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+
+        return $this->sendAsync(
+            $method,
+            $headers,
             $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
-        );
-        
-        $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode,
-            $body
+            $postParams,
+            $path,
+            Resources::STATUS_NO_CONTENT,
+            $body,
+            $options
         );
     }
 
     /**
-     * Adds a message to the queue and optionally sets a visibility timeout 
+     * Adds a message to the queue and optionally sets a visibility timeout
      * for the message.
-     * 
+     *
      * @param string               $queueName   The name of the queue.
      * @param string               $messageText The message contents.
      * @param CreateMessageOptions $options     The optional parameters.
-     * 
-     * @return none
+     *
+     * @return CreateMessageResult
      */
-    public function createMessage($queueName, $messageText,
-        $options = null
+    public function createMessage(
+        $queueName,
+        $messageText,
+        CreateMessageOptions $options = null
     ) {
-        Validate::isString($queueName, 'queueName');
+        return $this->createMessageAsync($queueName, $messageText, $options)->wait();
+    }
+
+    /**
+     * Creates promise to add a message to the queue and optionally sets a
+     * visibility timeout for the message.
+     *
+     * @param string               $queueName   The name of the queue.
+     * @param string               $messageText The message contents.
+     * @param CreateMessageOptions $options     The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function createMessageAsync(
+        $queueName,
+        $messageText,
+        CreateMessageOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
-        Validate::isString($messageText, 'messageText');
+        Validate::canCastAsString($messageText, 'messageText');
         
         $method      = Resources::HTTP_POST;
         $headers     = array();
@@ -181,7 +239,6 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $queryParams = array();
         $path        = $queueName . '/messages';
         $body        = Resources::EMPTY_STRING;
-        $statusCode  = Resources::STATUS_CREATED;
         $message     = new QueueMessage();
         $message->setMessageText($messageText);
         $body = $message->toXml($this->dataSerializer);
@@ -199,9 +256,7 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         
         $visibility = $options->getVisibilityTimeoutInSeconds();
         $timeToLive = $options->getTimeToLiveInSeconds();
-        $timeout    = $options->getTimeout();
         
-        $this->addOptionalQueryParam($queryParams, Resources::QP_TIMEOUT, $timeout);
         $this->addOptionalQueryParam(
             $queryParams,
             Resources::QP_VISIBILITY_TIMEOUT,
@@ -213,28 +268,53 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
             $timeToLive
         );
         
-        $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode, 
-            $body
-        );
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+
+        $dataSerializer = $this->dataSerializer;
+
+        return $this->sendAsync(
+            $method,
+            $headers,
+            $queryParams,
+            $postParams,
+            $path,
+            Resources::STATUS_CREATED,
+            $body,
+            $options
+        )->then(function ($response) use ($dataSerializer) {
+            $parsed = $dataSerializer->unserialize($response->getBody());
+            return CreateMessageResult::create($parsed);
+        }, null);
     }
 
     /**
      * Creates a new queue under the storage account.
-     * 
-     * @param string             $queueName The queue name.
-     * @param QueueCreateOptions $options   The Optional parameters.
-     * 
-     * @return none
+     *
+     * @param string                    $queueName The queue name.
+     * @param Models\CreateQueueOptions  $options   The Optional parameters.
+     *
+     * @return void
      */
-    public function createQueue($queueName, $options = null)
-    {
-        Validate::isString($queueName, 'queueName');
+    public function createQueue(
+        $queueName,
+        Models\CreateQueueOptions $options = null
+    ) {
+        $this->createQueueAsync($queueName, $options)->wait();
+    }
+
+    /**
+     * Creates promise to create a new queue under the storage account.
+     *
+     * @param string                     $queueName The queue name.
+     * @param Models\CreateQueueOptions  $options   The Optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function createQueueAsync(
+        $queueName,
+        Models\CreateQueueOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
         
         $method      = Resources::HTTP_PUT;
@@ -242,50 +322,75 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $postParams  = array();
         $queryParams = array();
         $path        = $queueName;
-        $statusCode  = array(
-            Resources::STATUS_CREATED,
-            Resources::STATUS_NO_CONTENT
-        );
         
         if (is_null($options)) {
             $options = new CreateQueueOptions();
         }
 
         $metadata = $options->getMetadata();
-        $timeout  = $options->getTimeout();
         $headers  = $this->generateMetadataHeaders($metadata);
         
-        $this->addOptionalQueryParam($queryParams, Resources::QP_TIMEOUT, $timeout);
-        
-        $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+
+        return $this->sendAsync(
+            $method,
+            $headers,
+            $queryParams,
+            $postParams,
+            $path,
+            array(Resources::STATUS_CREATED, Resources::STATUS_NO_CONTENT),
+            Resources::EMPTY_STRING,
+            $options
         );
     }
 
     /**
      * Deletes a specified message from the queue.
-     * 
+     *
      * @param string              $queueName  The name of the queue.
      * @param string              $messageId  The id of the message.
      * @param string              $popReceipt The valid pop receipt value returned
      * from an earlier call to the Get Messages or Update Message operation.
      * @param QueueServiceOptions $options    The optional parameters.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function deleteMessage($queueName, $messageId, $popReceipt, 
-        $options = null
+    public function deleteMessage(
+        $queueName,
+        $messageId,
+        $popReceipt,
+        QueueServiceOptions $options = null
     ) {
-        Validate::isString($queueName, 'queueName');
+        $this->deleteMessageAsync(
+            $queueName,
+            $messageId,
+            $popReceipt,
+            $options
+        )->wait();
+    }
+
+    /**
+     * Creates promise to delete a specified message from the queue.
+     *
+     * @param string              $queueName  The name of the queue.
+     * @param string              $messageId  The id of the message.
+     * @param string              $popReceipt The valid pop receipt value returned
+     * from an earlier call to the Get Messages or Update Message operation.
+     * @param QueueServiceOptions $options    The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function deleteMessageAsync(
+        $queueName,
+        $messageId,
+        $popReceipt,
+        QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
-        Validate::isString($messageId, 'messageId');
+        Validate::canCastAsString($messageId, 'messageId');
         Validate::notNullOrEmpty($messageId, 'messageId');
-        Validate::isString($popReceipt, 'popReceipt');
+        Validate::canCastAsString($popReceipt, 'popReceipt');
         Validate::notNullOrEmpty($popReceipt, 'popReceipt');
         
         $method      = Resources::HTTP_DELETE;
@@ -294,7 +399,6 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $queryParams = array();
         $path        = $queueName . '/messages/' . $messageId;
         $body        = Resources::EMPTY_STRING;
-        $statusCode  = Resources::STATUS_NO_CONTENT;
         
         if (is_null($options)) {
             $options = new QueueServiceOptions();
@@ -302,37 +406,50 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         
         $this->addOptionalQueryParam(
             $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
-        );
-        $this->addOptionalQueryParam(
-            $queryParams,
             Resources::QP_POPRECEIPT,
             $popReceipt
         );
         
-        $this->send(
-            $method, 
-            $headers, 
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+
+        return $this->sendAsync(
+            $method,
+            $headers,
             $queryParams,
             $postParams,
-            $path, 
-            $statusCode, 
-            $body
+            $path,
+            Resources::STATUS_NO_CONTENT,
+            $body,
+            $options
         );
     }
 
     /**
      * Deletes a queue.
-     * 
+     *
      * @param string              $queueName The queue name.
      * @param QueueServiceOptions $options   The optional parameters.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function deleteQueue($queueName, $options = null)
+    public function deleteQueue($queueName, QueueServiceOptions $options = null)
     {
-        Validate::isString($queueName, 'queueName');
+        $this->deleteQueueAsync($queueName, $options)->wait();
+    }
+
+    /**
+     * Creates promise to delete a queue.
+     *
+     * @param string              $queueName The queue name.
+     * @param QueueServiceOptions $options   The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function deleteQueueAsync(
+        $queueName,
+        QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
         
         $method      = Resources::HTTP_DELETE;
@@ -340,39 +457,51 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $postParams  = array();
         $queryParams = array();
         $path        = $queueName;
-        $statusCode  = Resources::STATUS_NO_CONTENT;
         
         if (is_null($options)) {
             $options = new QueueServiceOptions();
         }
         
-        $this->addOptionalQueryParam(
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+
+        return $this->sendAsync(
+            $method,
+            $headers,
             $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
-        );
-        
-        $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode
+            $postParams,
+            $path,
+            Resources::STATUS_NO_CONTENT,
+            Resources::EMPTY_STRING,
+            $options
         );
     }
 
     /**
      * Returns queue properties, including user-defined metadata.
-     * 
+     *
      * @param string              $queueName The queue name.
      * @param QueueServiceOptions $options   The optional parameters.
-     * 
-     * @return MicrosoftAzure\Storage\Common\Models\GetQueueMetadataResult
+     *
+     * @return Models\GetQueueMetadataResult
      */
-    public function getQueueMetadata($queueName, $options = null)
+    public function getQueueMetadata($queueName, QueueServiceOptions $options = null)
     {
-        Validate::isString($queueName, 'queueName');
+        return $this->getQueueMetadataAsync($queueName, $options)->wait();
+    }
+
+    /**
+     * Creates promise to return queue properties, including user-defined metadata.
+     *
+     * @param string              $queueName The queue name.
+     * @param QueueServiceOptions $options   The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function getQueueMetadataAsync(
+        $queueName,
+        QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
         
         $method      = Resources::HTTP_GET;
@@ -381,99 +510,62 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $queryParams = array();
         $path        = $queueName;
         $body        = Resources::EMPTY_STRING;
-        $statusCode  = Resources::STATUS_OK;
         
         if (is_null($options)) {
             $options = new QueueServiceOptions();
         }
         
         $this->addOptionalQueryParam($queryParams, Resources::QP_COMP, 'metadata');
-        $this->addOptionalQueryParam(
+        
+        return $this->sendAsync(
+            $method,
+            $headers,
             $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
-        );
+            $postParams,
+            $path,
+            Resources::STATUS_OK,
+            $body,
+            $options
+        )->then(function ($response) {
+            $responseHeaders = HttpFormatter::formatHeaders($response->getHeaders());
+            $metadata = Utilities::getMetadataArray($responseHeaders);
+            $maxCount = intval(
+                Utilities::tryGetValue(
+                    $responseHeaders,
+                    Resources::X_MS_APPROXIMATE_MESSAGES_COUNT
+                )
+            );
         
-        $response = $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode, 
-            $body
-        );
-        
-        $responseHeaders = HttpFormatter::formatHeaders($response->getHeaders());
-        
-        $metadata = $this->getMetadataArray($responseHeaders);
-        $maxCount = intval(
-            Utilities::tryGetValue($responseHeaders, Resources::X_MS_APPROXIMATE_MESSAGES_COUNT)
-        );
-        
-        return new GetQueueMetadataResult($maxCount, $metadata);
-    }
-
-    /**
-     * Gets the properties of the Queue service.
-     * 
-     * @param QueueServiceOptions $options The optional parameters.
-     * 
-     * @return MicrosoftAzure\Storage\Common\Models\GetServicePropertiesResult
-     */
-    public function getServiceProperties($options = null)
-    {
-        $method      = Resources::HTTP_GET;
-        $headers     = array();
-        $postParams  = array();
-        $queryParams = array();
-        $path        = Resources::EMPTY_STRING;
-        $statusCode  = Resources::STATUS_OK;
-        
-        if (is_null($options)) {
-            $options = new QueueServiceOptions();
-        }
-        
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
-        );
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_REST_TYPE,
-            'service'
-        );
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_COMP,
-            'properties'
-        );
-        
-        $response = $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode
-        );
-        $parsed   = $this->dataSerializer->unserialize($response->getBody());
-        
-        return GetServicePropertiesResult::create($parsed);
+            return new GetQueueMetadataResult($maxCount, $metadata);
+        }, null);
     }
 
     /**
      * Lists all messages in the queue.
-     * 
+     *
      * @param string              $queueName The queue name.
      * @param ListMessagesOptions $options   The optional parameters.
-     * 
-     * @return MicrosoftAzure\Storage\Common\Models\ListMessagesResult
+     *
+     * @return Models\ListMessagesResult
      */
-    public function listMessages($queueName, $options = null)
+    public function listMessages($queueName, ListMessagesOptions $options = null)
     {
-        Validate::isString($queueName, 'queueName');
+        return $this->listMessagesAsync($queueName, $options)->wait();
+    }
+
+    /**
+     * Creates promise to list all messages in the queue.
+     *
+     * @param string              $queueName The queue name.
+     * @param ListMessagesOptions $options   The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function listMessagesAsync(
+        $queueName,
+        ListMessagesOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
         
         $method      = Resources::HTTP_GET;
@@ -481,7 +573,6 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $queryParams = array();
         $postParams  = array();
         $path        = $queueName . '/messages';
-        $statusCode  = Resources::STATUS_OK;
         
         if (is_null($options)) {
             $options = new ListMessagesOptions();
@@ -489,9 +580,7 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         
         $messagesCount = $options->getNumberOfMessages();
         $visibility    = $options->getVisibilityTimeoutInSeconds();
-        $timeout       = $options->getTimeout();
         
-        $this->addOptionalQueryParam($queryParams, Resources::QP_TIMEOUT, $timeout);
         $this->addOptionalQueryParam(
             $queryParams,
             Resources::QP_NUM_OF_MESSAGES,
@@ -502,33 +591,54 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
             Resources::QP_VISIBILITY_TIMEOUT,
             $visibility
         );
+
+        $dataSerializer = $this->dataSerializer;
         
-        $response = $this->send(
-            $method, 
-            $headers, 
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+
+        return $this->sendAsync(
+            $method,
+            $headers,
             $queryParams,
             $postParams,
-            $path, 
-            $statusCode
-        );
-
-        $parsed = $this->dataSerializer->unserialize($response->getBody());
-        
-        return ListMessagesResult::create($parsed);
+            $path,
+            Resources::STATUS_OK,
+            Resources::EMPTY_STRING,
+            $options
+        )->then(function ($response) use ($dataSerializer) {
+            $parsed = $dataSerializer->unserialize($response->getBody());
+            return ListMessagesResult::create($parsed);
+        }, null);
     }
 
     /**
-     * Retrieves a message from the front of the queue, without changing 
+     * Retrieves a message from the front of the queue, without changing
      * the message visibility.
-     * 
+     *
      * @param string              $queueName The queue name.
      * @param PeekMessagesOptions $options   The optional parameters.
-     * 
-     * @return MicrosoftAzure\Storage\Common\Models\PeekMessagesResult
+     *
+     * @return Models\PeekMessagesResult
      */
-    public function peekMessages($queueName, $options = null)
+    public function peekMessages($queueName, PeekMessagesOptions $options = null)
     {
-        Validate::isString($queueName, 'queueName');
+        return $this->peekMessagesAsync($queueName, $options)->wait();
+    }
+
+    /**
+     * Creates promise to retrieve a message from the front of the queue,
+     * without changing the message visibility.
+     *
+     * @param string              $queueName The queue name.
+     * @param PeekMessagesOptions $options   The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function peekMessagesAsync(
+        $queueName,
+        PeekMessagesOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
         
         $method      = Resources::HTTP_GET;
@@ -536,58 +646,79 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $queryParams = array();
         $postParams  = array();
         $path        = $queueName . '/messages';
-        $statusCode  = Resources::STATUS_OK;
         
         if (is_null($options)) {
             $options = new PeekMessagesOptions();
         }
         
         $messagesCount = $options->getNumberOfMessages();
-        $timeout       = $options->getTimeout();
         
         $this->addOptionalQueryParam($queryParams, Resources::QP_PEEK_ONLY, 'true');
-        $this->addOptionalQueryParam($queryParams, Resources::QP_TIMEOUT, $timeout);
         $this->addOptionalQueryParam(
             $queryParams,
             Resources::QP_NUM_OF_MESSAGES,
             $messagesCount
         );
         
-        $response = $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode
-        );
-        $parsed   = $this->dataSerializer->unserialize($response->getBody());
-        
-        return PeekMessagesResult::create($parsed);
+        $dataSerializer = $this->dataSerializer;
+
+        return $this->sendAsync(
+            $method,
+            $headers,
+            $queryParams,
+            $postParams,
+            $path,
+            Resources::STATUS_OK,
+            Resources::EMPTY_STRING,
+            $options
+        )->then(function ($response) use ($dataSerializer) {
+            $parsed = $dataSerializer->unserialize($response->getBody());
+            return PeekMessagesResult::create($parsed);
+        }, null);
     }
 
     /**
-     * Sets user-defined metadata on the queue. To delete queue metadata, call 
+     * Sets user-defined metadata on the queue. To delete queue metadata, call
      * this API without specifying any metadata in $metadata.
-     * 
+     *
      * @param string              $queueName The queue name.
      * @param array               $metadata  The metadata array.
      * @param QueueServiceOptions $options   The optional parameters.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setQueueMetadata($queueName, $metadata, $options = null)
-    {
-        Validate::isString($queueName, 'queueName');
+    public function setQueueMetadata(
+        $queueName,
+        array $metadata = null,
+        QueueServiceOptions $options = null
+    ) {
+        $this->setQueueMetadataAsync($queueName, $metadata, $options)->wait();
+    }
+
+    /**
+     * Creates promise to set user-defined metadata on the queue. To delete
+     * queue metadata, call this API without specifying any metadata in $metadata.
+     *
+     * @param string              $queueName The queue name.
+     * @param array               $metadata  The metadata array.
+     * @param QueueServiceOptions $options   The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function setQueueMetadataAsync(
+        $queueName,
+        array $metadata = null,
+        QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
-        $this->validateMetadata($metadata);
+        Utilities::validateMetadata($metadata);
         
         $method      = Resources::HTTP_PUT;
         $headers     = array();
         $queryParams = array();
         $postParams  = array();
         $path        = $queueName;
-        $statusCode  = Resources::STATUS_NO_CONTENT;
         $body        = Resources::EMPTY_STRING;
         
         if (is_null($options)) {
@@ -595,118 +726,98 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         }
         
         $this->addOptionalQueryParam($queryParams, Resources::QP_COMP, 'metadata');
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
-        );
         
         $metadataHeaders = $this->generateMetadataHeaders($metadata);
         $headers         = $metadataHeaders;
         
-        $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode, 
-            $body
-        );
-    }
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
 
-    /**
-     * Sets the properties of the Queue service.
-     * 
-     * It's recommended to use getServiceProperties, alter the returned object and
-     * then use setServiceProperties with this altered object.
-     * 
-     * @param array               $serviceProperties The new service properties.
-     * @param QueueServiceOptions $options           The optional parameters.  
-     * 
-     * @return none
-     */
-    public function setServiceProperties($serviceProperties, $options = null)
-    {
-        Validate::isTrue(
-            $serviceProperties instanceof ServiceProperties,
-            Resources::INVALID_SVC_PROP_MSG
-        );
-                
-        $method      = Resources::HTTP_PUT;
-        $headers     = array();
-        $postParams  = array();
-        $queryParams = array();
-        $statusCode  = Resources::STATUS_ACCEPTED;
-        $path        = Resources::EMPTY_STRING;
-        $body        = $serviceProperties->toXml($this->dataSerializer);
-        
-        if (is_null($options)) {
-            $options = new QueueServiceOptions();
-        }
-    
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_REST_TYPE,
-            'service'
-        );
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_COMP,
-            'properties'
-        );
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
-        );
-        $this->addOptionalHeader(
+        return $this->sendAsync(
+            $method,
             $headers,
-            Resources::CONTENT_TYPE,
-            Resources::URL_ENCODED_CONTENT_TYPE
-        );
-        
-        $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode, 
-            $body
+            $queryParams,
+            $postParams,
+            $path,
+            Resources::STATUS_NO_CONTENT,
+            $body,
+            $options
         );
     }
 
     /**
      * Updates the visibility timeout of a message and/or the message contents.
-     * 
+     *
      * @param string              $queueName                  The queue name.
      * @param string              $messageId                  The id of the message.
-     * @param string              $popReceipt                 The valid pop receipt 
+     * @param string              $popReceipt                 The valid pop receipt
      * value returned from an earlier call to the Get Messages or Update Message
      * operation.
      * @param string              $messageText                The message contents.
-     * @param int                 $visibilityTimeoutInSeconds Specifies the new 
-     * visibility timeout value, in seconds, relative to server time. 
-     * The new value must be larger than or equal to 0, and cannot be larger 
-     * than 7 days. The visibility timeout of a message cannot be set to a value 
-     * later than the expiry time. A message can be updated until it has been 
+     * @param int                 $visibilityTimeoutInSeconds Specifies the new
+     * visibility timeout value, in seconds, relative to server time.
+     * The new value must be larger than or equal to 0, and cannot be larger
+     * than 7 days. The visibility timeout of a message cannot be set to a value
+     * later than the expiry time. A message can be updated until it has been
      * deleted or has expired.
-     * @param QueueServiceOptions $options                    The optional 
+     * @param QueueServiceOptions $options                    The optional
      * parameters.
-     * 
-     * @return MicrosoftAzure\Storage\Common\Models\UpdateMessageResult
+     *
+     * @return Models\UpdateMessageResult
      */
-    public function updateMessage($queueName, $messageId, $popReceipt, $messageText, 
-        $visibilityTimeoutInSeconds, $options = null
+    public function updateMessage(
+        $queueName,
+        $messageId,
+        $popReceipt,
+        $messageText,
+        $visibilityTimeoutInSeconds,
+        QueueServiceOptions $options = null
     ) {
-        Validate::isString($queueName, 'queueName');
+        return $this->updateMessageAsync(
+            $queueName,
+            $messageId,
+            $popReceipt,
+            $messageText,
+            $visibilityTimeoutInSeconds,
+            $options
+        )->wait();
+    }
+
+    /**
+     * Creates promise to update the visibility timeout of a message and/or the
+     * message contents.
+     *
+     * @param string              $queueName                  The queue name.
+     * @param string              $messageId                  The id of the message.
+     * @param string              $popReceipt                 The valid pop receipt
+     * value returned from an earlier call to the Get Messages or Update Message
+     * operation.
+     * @param string              $messageText                The message contents.
+     * @param int                 $visibilityTimeoutInSeconds Specifies the new
+     * visibility timeout value, in seconds, relative to server time.
+     * The new value must be larger than or equal to 0, and cannot be larger
+     * than 7 days. The visibility timeout of a message cannot be set to a value
+     * later than the expiry time. A message can be updated until it has been
+     * deleted or has expired.
+     * @param QueueServiceOptions $options                    The optional
+     * parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function updateMessageAsync(
+        $queueName,
+        $messageId,
+        $popReceipt,
+        $messageText,
+        $visibilityTimeoutInSeconds,
+        QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queueName, 'queueName');
         Validate::notNullOrEmpty($queueName, 'queueName');
-        Validate::isString($messageId, 'messageId');
+        Validate::canCastAsString($messageId, 'messageId');
         Validate::notNullOrEmpty($messageId, 'messageId');
-        Validate::isString($popReceipt, 'popReceipt');
+        Validate::canCastAsString($popReceipt, 'popReceipt');
         Validate::notNullOrEmpty($popReceipt, 'popReceipt');
-        Validate::isString($messageText, 'messageText');
+        Validate::canCastAsString($messageText, 'messageText');
         Validate::isInteger(
             $visibilityTimeoutInSeconds,
             'visibilityTimeoutInSeconds'
@@ -722,7 +833,6 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
         $queryParams = array();
         $path        = $queueName . '/messages' . '/' . $messageId;
         $body        = Resources::EMPTY_STRING;
-        $statusCode  = Resources::STATUS_NO_CONTENT;
         
         if (is_null($options)) {
             $options = new QueueServiceOptions();
@@ -732,11 +842,6 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
             $queryParams,
             Resources::QP_VISIBILITY_TIMEOUT,
             $visibilityTimeoutInSeconds
-        );
-        $this->addOptionalQueryParam(
-            $queryParams,
-            Resources::QP_TIMEOUT,
-            $options->getTimeout()
         );
         $this->addOptionalQueryParam(
             $queryParams,
@@ -756,27 +861,158 @@ class QueueRestProxy extends ServiceRestProxy implements IQueue
             $body = $message->toXml($this->dataSerializer);
         }
         
-        $response        = $this->send(
-            $method, 
-            $headers, 
-            $queryParams, 
-            $postParams, 
-            $path, 
-            $statusCode, 
-            $body
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+
+        return $this->sendAsync(
+            $method,
+            $headers,
+            $queryParams,
+            $postParams,
+            $path,
+            Resources::STATUS_NO_CONTENT,
+            $body,
+            $options
+        )->then(function ($response) {
+            $responseHeaders = HttpFormatter::formatHeaders($response->getHeaders());
+            return UpdateMessageResult::create($responseHeaders);
+        }, null);
+    }
+
+    /**
+     * Gets the access control list (ACL)
+     *
+     * @param string                     $queue   The queue name.
+     * @param Models\QueueServiceOptions $options The optional parameters.
+     *
+     * @return Models\QueueACL
+     *
+     * @see https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/get-queue-acl
+     */
+    public function getQueueAcl(
+        $queue,
+        Models\QueueServiceOptions $options = null
+    ) {
+        return $this->getQueueAclAsync($queue, $options)->wait();
+    }
+
+    /**
+     * Creates the promise to gets the access control list (ACL)
+     *
+     * @param string                     $queue   The queue name.
+     * @param Models\QueueServiceOptions $options The optional parameters.
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @see https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/get-queue-acl
+     */
+    public function getQueueAclAsync(
+        $queue,
+        Models\QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queue, 'queue');
+        
+        $method      = Resources::HTTP_GET;
+        $headers     = array();
+        $postParams  = array();
+        $queryParams = array();
+        $statusCode  = Resources::STATUS_OK;
+        $path        = $queue;
+        
+        if (is_null($options)) {
+            $options = new QueueServiceOptions();
+        }
+        
+        $this->addOptionalQueryParam(
+            $queryParams,
+            Resources::QP_COMP,
+            'acl'
         );
+
+        $dataSerializer = $this->dataSerializer;
         
-        $responseHeaders = HttpFormatter::formatHeaders($response->getHeaders());
+        $promise = $this->sendAsync(
+            $method,
+            $headers,
+            $queryParams,
+            $postParams,
+            $path,
+            Resources::STATUS_OK,
+            Resources::EMPTY_STRING,
+            $options
+        );
+
+        return $promise->then(function ($response) use ($dataSerializer) {
+            $parsed       = $dataSerializer->unserialize($response->getBody());
+            return QueueACL::create($parsed);
+        }, null);
+    }
+    
+    /**
+     * Sets the ACL.
+     *
+     * @param string                     $queue   name
+     * @param Models\QueueACL            $acl     access control list for Queue
+     * @param Models\QueueServiceOptions $options optional parameters
+     *
+     * @return void
+     *
+     * @see https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/set-queue-acl
+     */
+    public function setQueueAcl(
+        $queue,
+        Models\QueueACL $acl,
+        Models\QueueServiceOptions $options = null
+    ) {
+        $this->setQueueAclAsync($queue, $acl, $options)->wait();
+    }
+
+    /**
+     * Creates promise to set the ACL
+     *
+     * @param string                     $queue   name
+     * @param Models\QueueACL            $acl     access control list for Queue
+     * @param Models\QueueServiceOptions $options optional parameters
+     *
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     *
+     * @see https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/set-queue-acl
+     */
+    public function setQueueAclAsync(
+        $queue,
+        Models\QueueACL $acl,
+        Models\QueueServiceOptions $options = null
+    ) {
+        Validate::canCastAsString($queue, 'queue');
+        Validate::notNullOrEmpty($acl, 'acl');
         
-        $popReceipt      = Utilities::tryGetValue($responseHeaders, Resources::X_MS_POPRECEIPT);
-        $timeNextVisible = Utilities::tryGetValue($responseHeaders, Resources::X_MS_TIME_NEXT_VISIBLE);
+        $method      = Resources::HTTP_PUT;
+        $headers     = array();
+        $postParams  = array();
+        $queryParams = array();
+        $body        = $acl->toXml($this->dataSerializer);
+        $path        = $queue;
         
-        $date   = Utilities::rfc1123ToDateTime($timeNextVisible);
-        $result = new UpdateMessageResult();
-        $result->setPopReceipt($popReceipt);
-        $result->setTimeNextVisible($date);
+        if (is_null($options)) {
+            $options = new QueueServiceOptions();
+        }
         
-        return $result;
+        $this->addOptionalQueryParam(
+            $queryParams,
+            Resources::QP_COMP,
+            'acl'
+        );
+
+        $options->setLocationMode(LocationMode::PRIMARY_ONLY);
+        
+        return $this->sendAsync(
+            $method,
+            $headers,
+            $queryParams,
+            $postParams,
+            $path,
+            Resources::STATUS_NO_CONTENT,
+            $body,
+            $options
+        );
     }
 }
-

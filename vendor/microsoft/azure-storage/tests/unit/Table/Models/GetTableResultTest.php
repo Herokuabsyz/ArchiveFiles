@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,7 +22,10 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Table\Models;
+
 use MicrosoftAzure\Storage\Table\Models\GetTableResult;
+use MicrosoftAzure\Storage\Table\Internal\JsonODataReaderWriter;
+use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 
 /**
  * Unit tests for class GetTableResult
@@ -32,7 +35,6 @@ use MicrosoftAzure\Storage\Table\Models\GetTableResult;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetTableResultTest extends \PHPUnit_Framework_TestCase
@@ -40,20 +42,18 @@ class GetTableResultTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Table\Models\GetTableResult::setName
      * @covers MicrosoftAzure\Storage\Table\Models\GetTableResult::getName
+     * @covers MicrosoftAzure\Storage\Table\Models\GetTableResult::create
      */
-    public function testSetName()
+    public function testCreate()
     {
         // Setup
-        $result = new GetTableResult();
-        $name = 'myTable';
-        
+        $sampleBody = TestResources::getTableSampleBody();
+        $serializer = new JsonODataReaderWriter();
+
         // Test
-        $result->setName($name);
+        $result = GetTableResult::create($sampleBody, $serializer);
         
         // Assert
-        $this->assertEquals($name, $result->getName());
-        
+        $this->assertEquals($serializer->parseTable($sampleBody), $result->getName());
     }
 }
-
-

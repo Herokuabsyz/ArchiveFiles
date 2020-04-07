@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
  
 namespace MicrosoftAzure\Storage\Table\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Internal\Validate;
@@ -35,34 +36,26 @@ use MicrosoftAzure\Storage\Common\Internal\Validate;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class Entity
 {
-    /**
-     * @var string
-     */
     private $_etag;
-    
-    /**
-     * @var array
-     */
     private $_properties;
     
     /**
      * Validates if properties is valid or not.
-     * 
-     * @param mix $properties The properties array.
-     * 
-     * @return none
+     *
+     * @param mixed $properties The properties array.
+     *
+     * @return void
      */
     private function _validateProperties($properties)
     {
         Validate::isArray($properties, 'entity properties');
         
         foreach ($properties as $key => $value) {
-            Validate::isString($key, 'key');
+            Validate::canCastAsString($key, 'key');
             Validate::isTrue(
                 $value instanceof Property,
                 Resources::INVALID_PROP_MSG
@@ -80,10 +73,10 @@ class Entity
     
     /**
      * Gets property value and if the property name is not found return null.
-     * 
+     *
      * @param string $name The property name.
-     * 
-     * @return mix
+     *
+     * @return mixed
      */
     public function getPropertyValue($name)
     {
@@ -93,14 +86,14 @@ class Entity
     
     /**
      * Sets property value.
-     * 
+     *
      * Note that if the property doesn't exist, it doesn't add it. Use addProperty
      * to add new properties.
-     * 
+     *
      * @param string $name  The property name.
-     * @param mix    $value The property value. 
-     * 
-     * @return mix
+     * @param mixed  $value The property value.
+     *
+     * @return mixed
      */
     public function setPropertyValue($name, $value)
     {
@@ -125,7 +118,7 @@ class Entity
      *
      * @param string $etag The entity ETag value.
      *
-     * @return none
+     * @return void
      */
     public function setETag($etag)
     {
@@ -147,11 +140,11 @@ class Entity
      *
      * @param string $partitionKey The entity PartitionKey value.
      *
-     * @return none
+     * @return void
      */
     public function setPartitionKey($partitionKey)
     {
-        $this->addProperty('PartitionKey', null, $partitionKey);
+        $this->addProperty('PartitionKey', EdmType::STRING, $partitionKey);
     }
     
     /**
@@ -169,11 +162,11 @@ class Entity
      *
      * @param string $rowKey The entity RowKey value.
      *
-     * @return none
+     * @return void
      */
     public function setRowKey($rowKey)
     {
-        $this->addProperty('RowKey', null, $rowKey);
+        $this->addProperty('RowKey', EdmType::STRING, $rowKey);
     }
     
     /**
@@ -191,16 +184,16 @@ class Entity
      *
      * @param \DateTime $timestamp The entity Timestamp value.
      *
-     * @return none
+     * @return void
      */
-    public function setTimestamp($timestamp)
+    public function setTimestamp(\DateTime $timestamp)
     {
         $this->addProperty('Timestamp', EdmType::DATETIME, $timestamp);
     }
     
     /**
      * Gets the entity properties array.
-     * 
+     *
      * @return array
      */
     public function getProperties()
@@ -210,12 +203,12 @@ class Entity
     
     /**
      * Sets the entity properties array.
-     * 
+     *
      * @param array $properties The entity properties.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setProperties($properties)
+    public function setProperties(array $properties)
     {
         $this->_validateProperties($properties);
         $this->_properties = $properties;
@@ -223,9 +216,9 @@ class Entity
     
     /**
      * Gets property object from the entity properties.
-     * 
+     *
      * @param string $name The property name.
-     * 
+     *
      * @return Property
      */
     public function getProperty($name)
@@ -235,11 +228,11 @@ class Entity
     
     /**
      * Sets entity property.
-     * 
+     *
      * @param string   $name     The property name.
      * @param Property $property The property object.
-     * 
-     * @return none
+     *
+     * @return void
      */
     public function setProperty($name, $property)
     {
@@ -249,18 +242,18 @@ class Entity
     
     /**
      * Creates new entity property.
-     * 
-     * @param string $name    The property name.
-     * @param string $edmType The property edm type.
-     * @param mix    $value   The property value.
-     * 
-     * @return none
+     *
+     * @param string $name     The property name.
+     * @param string $edmType  The property edm type.
+     * @param mixed  $value    The property value.
+     * @param string $rawValue The raw value of the property.
      */
-    public function addProperty($name, $edmType, $value)
-    {        
+    public function addProperty($name, $edmType, $value, $rawValue = '')
+    {
         $p = new Property();
         $p->setEdmType($edmType);
         $p->setValue($value);
+        $p->setRawValue($rawValue);
         $this->setProperty($name, $p);
     }
     
@@ -268,9 +261,11 @@ class Entity
      * Checks if the entity object is valid or not.
      * Valid means the partition and row key exists for this entity along with the
      * timestamp.
-     * 
+     *
      * @param string &$msg The error message.
-     * 
+     *
+     * @internal
+     *
      * @return boolean
      */
     public function isValid(&$msg = null)
@@ -282,7 +277,7 @@ class Entity
             return false;
         }
 
-        if (   is_null($this->getPartitionKey())
+        if (is_null($this->getPartitionKey())
             || is_null($this->getRowKey())
         ) {
             $msg = Resources::NULL_TABLE_KEY_MSG;
@@ -292,5 +287,3 @@ class Entity
         }
     }
 }
-
-

@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Framework;
+
 use MicrosoftAzure\Storage\Tests\Framework\ServiceRestProxyTestBase;
 
 /**
@@ -32,7 +33,6 @@ use MicrosoftAzure\Storage\Tests\Framework\ServiceRestProxyTestBase;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class TableServiceRestProxyTestBase extends ServiceRestProxyTestBase
@@ -55,17 +55,17 @@ class TableServiceRestProxyTestBase extends ServiceRestProxyTestBase
     
     public function deleteTable($tableName)
     {
+        if (($key = array_search($tableName, $this->_createdTables)) !== false) {
+            unset($this->_createdTables[$key]);
+        }
         $this->restProxy->deleteTable($tableName);
     }
     
     public function safeDeleteTable($tableName)
     {
-        try
-        {
+        try {
             $this->deleteTable($tableName);
-        }
-        catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             // Ignore exception and continue, will assume that this table doesn't exist in the sotrage account
             error_log($e->getMessage());
         }
@@ -80,5 +80,3 @@ class TableServiceRestProxyTestBase extends ServiceRestProxyTestBase
         }
     }
 }
-
-

@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,7 +23,12 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Table\Models;
+
 use MicrosoftAzure\Storage\Table\Models\BatchResult;
+use MicrosoftAzure\Storage\Table\Internal\MimeReaderWriter;
+use MicrosoftAzure\Storage\Table\Internal\JsonODataReaderWriter;
+use MicrosoftAzure\Storage\Common\Internal\Utilities;
+use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 
 /**
  * Unit tests for class BatchResult
@@ -33,7 +38,6 @@ use MicrosoftAzure\Storage\Table\Models\BatchResult;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class BatchResultTest extends \PHPUnit_Framework_TestCase
@@ -41,19 +45,28 @@ class BatchResultTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Table\Models\BatchResult::setEntries
      * @covers MicrosoftAzure\Storage\Table\Models\BatchResult::getEntries
+     * @covers MicrosoftAzure\Storage\Table\Models\BatchResult::create
      */
-    public function testSetEntries()
+    public function testCreate()
     {
         // Setup
-        $batchResult = new BatchResult();
-        $entries = array();
-        
+        $contexts       = TestResources::getBatchContexts();
+        $body           = TestResources::getBatchResponseBody();
+        $operations     = TestResources::getBatchOperations();
+        $odataSerializer = new JsonODataReaderWriter();
+        $mimeSerializer = new MimeReaderWriter();
+        $entries        = TestResources::getExpectedBatchResultEntries();
+
         // Test
-        $batchResult->setEntries($entries);
-        
-        // Assert
-        $this->assertEquals($entries, $batchResult->getEntries());
+        $result = BatchResult::create(
+            $body,
+            $operations,
+            $contexts,
+            $odataSerializer,
+            $mimeSerializer
+        );
+
+        //Assert
+        $this->assertEquals($entries, $result->getEntries());
     }
 }
-
-

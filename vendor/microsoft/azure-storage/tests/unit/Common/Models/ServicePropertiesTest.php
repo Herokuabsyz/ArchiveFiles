@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Common\Models;
+
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Common\Models\Logging;
@@ -39,7 +40,6 @@ use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ServicePropertiesTest extends \PHPUnit_Framework_TestCase
@@ -59,7 +59,7 @@ class ServicePropertiesTest extends \PHPUnit_Framework_TestCase
         
         // Assert
         $this->assertEquals($logging, $result->getLogging());
-        $this->assertEquals($metrics, $result->getMetrics());
+        $this->assertEquals($metrics, $result->getHourMetrics());
     }
     
     /**
@@ -98,9 +98,9 @@ class ServicePropertiesTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Models\ServiceProperties::setMetrics
+     * @covers MicrosoftAzure\Storage\Common\Models\ServiceProperties::setHourMetrics
      */
-    public function testSetMetrics()
+    public function testSetHourMetrics()
     {
         // Setup
         $sample = TestResources::getServicePropertiesSample();
@@ -108,25 +108,25 @@ class ServicePropertiesTest extends \PHPUnit_Framework_TestCase
         $result = new ServiceProperties();
         
         // Test
-        $result->setMetrics($metrics);
+        $result->setHourMetrics($metrics);
         
         // Assert
-        $this->assertEquals($metrics, $result->getMetrics());
+        $this->assertEquals($metrics, $result->getHourMetrics());
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Models\ServiceProperties::getMetrics
+     * @covers MicrosoftAzure\Storage\Common\Models\ServiceProperties::getHourMetrics
      */
-    public function testGetMetrics()
+    public function testGetHourMetrics()
     {
         // Setup
         $sample = TestResources::getServicePropertiesSample();
         $metrics = Metrics::create($sample['HourMetrics']);
         $result = new ServiceProperties();
-        $result->setMetrics($metrics);
+        $result->setHourMetrics($metrics);
         
         // Test
-        $actual = $result->getMetrics($metrics);
+        $actual = $result->getHourMetrics($metrics);
         
         // Assert
         $this->assertEquals($metrics, $actual);
@@ -139,9 +139,20 @@ class ServicePropertiesTest extends \PHPUnit_Framework_TestCase
     {
         // Setup
         $properties = ServiceProperties::create(TestResources::getServicePropertiesSample());
+        $corsesArray = array();
+        if (count($properties->getCorses()) == 1) {
+            $corsesArray = ['CorsRule' => $properties->getCorses()[0]->toArray()];
+        } else {
+            foreach ($properties->getCorses() as $cors) {
+                $corsesArray[] = ['CorsRule' => $cors->toArray()];
+            }
+        }
+        
         $expected = array(
             'Logging' => $properties->getLogging()->toArray(),
-            'HourMetrics' => $properties->getMetrics()->toArray()
+            'HourMetrics' => $properties->getHourMetrics()->toArray(),
+            'MinuteMetrics' => $properties->getMinuteMetrics()->toArray(),
+            'Cors' => !empty($corsesArray) ? $corsesArray : null
         );
         
         // Test
@@ -169,5 +180,3 @@ class ServicePropertiesTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($actualProperties->getValue(), $properties);
     }
 }
-
-

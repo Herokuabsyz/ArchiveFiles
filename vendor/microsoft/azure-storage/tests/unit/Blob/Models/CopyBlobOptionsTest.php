@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Blob\Models\AccessCondition;
@@ -35,12 +36,13 @@ use MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class CopyBlobOptionsTest extends \PHPUnit_Framework_TestCase
-{  
-    /** 
+{
+    /**
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::setMetadata
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::getMetadata
      * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setMetadata
      * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getMetadata
      */
@@ -53,42 +55,48 @@ class CopyBlobOptionsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(
             $expected,
             $copyBlobOptions->getMetadata()
-            );
-    }
-    
-    /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setAccessCondition
-     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getAccessCondition
-     */
-    public function testSetAccessCondition()
-    {
-        $copyBlobOptions = new CopyBlobOptions();
-        $expected = AccessCondition::ifMatch("12345");
-        $copyBlobOptions->setAccessCondition($expected);
-        
-        $this->assertEquals(
-            $expected,
-            $copyBlobOptions->getAccessCondition()
         );
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setSourceAccessCondition
-     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getSourceAccessCondition
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::setAccessConditions
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::getAccessConditions
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setAccessConditions
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getAccessConditions
      */
-    public function testSetSourceAccessCondition()
+    public function testSetAccessConditions()
     {
         $copyBlobOptions = new CopyBlobOptions();
-        $expected = AccessCondition::IfMatch("x");
-        $copyBlobOptions->setSourceAccessCondition($expected);
+        $expected = AccessCondition::ifMatch("12345");
+        $copyBlobOptions->setAccessConditions($expected);
         
         $this->assertEquals(
             $expected,
-            $copyBlobOptions->getSourceAccessCondition()
-         );
+            $copyBlobOptions->getAccessConditions()[0]
+        );
     }
     
-    /** 
+    /**
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::setSourceAccessConditions
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::getSourceAccessConditions
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setSourceAccessConditions
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getSourceAccessConditions
+     */
+    public function testSetSourceAccessConditions()
+    {
+        $copyBlobOptions = new CopyBlobOptions();
+        $expected = AccessCondition::IfMatch("x");
+        $copyBlobOptions->setSourceAccessConditions($expected);
+        
+        $this->assertEquals(
+            $expected,
+            $copyBlobOptions->getSourceAccessConditions()[0]
+        );
+    }
+    
+    /**
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::setLeaseId
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::getLeaseId
      * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setLeaseId
      * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getLeaseId
      */
@@ -101,7 +109,9 @@ class CopyBlobOptionsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $options->getLeaseId());
     }
     
-    /** 
+    /**
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::setSourceLeaseId
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::getSourceLeaseId
      * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setSourceLeaseId
      * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getSourceLeaseId
      */
@@ -113,5 +123,32 @@ class CopyBlobOptionsTest extends \PHPUnit_Framework_TestCase
         $options->setSourceLeaseId($expected);
         $this->assertEquals($expected, $options->getSourceLeaseId());
     }
-}
 
+    /**
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::setIsIncrementalCopy
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobFromURLOptions::getIsIncrementalCopy
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setIsIncrementalCopy
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getIsIncrementalCopy
+     */
+    public function testSetIsIncrementalCopy()
+    {
+        $expected = true;
+        $options = new CopyBlobOptions();
+
+        $options->setIsIncrementalCopy($expected);
+        $this->assertEquals($expected, $options->getIsIncrementalCopy());
+    }
+
+    /**
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::setSourceSnapshot
+     * @covers MicrosoftAzure\Storage\Blob\Models\CopyBlobOptions::getSourceSnapshot
+     */
+    public function testSetSourceSnapshot()
+    {
+        $expected = '2017-09-19T10:39:36.8401215Z';
+        $options = new CopyBlobOptions();
+
+        $options->setSourceSnapshot($expected);
+        $this->assertEquals($expected, $options->getSourceSnapshot());
+    }
+}

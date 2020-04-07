@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
  
 namespace MicrosoftAzure\Storage\Tests\Mock\Common\Internal\Authentication;
+
 use MicrosoftAzure\Storage\Common\Internal\Authentication\TableSharedKeyLiteAuthScheme;
 
 /**
@@ -32,20 +33,17 @@ use MicrosoftAzure\Storage\Common\Internal\Authentication\TableSharedKeyLiteAuth
  * @author     Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright  2016 Microsoft Corporation
  * @license    https://github.com/azure/azure-storage-php/LICENSE
- * @version    Release: 0.10.2
  * @link       https://github.com/azure/azure-storage-php
  */
 class TableSharedKeyLiteAuthSchemeMock extends TableSharedKeyLiteAuthScheme
 {
-  public function getIncludedHeaders()
-  {
-    return $this->includedHeaders;
-  }
+    public function getIncludedHeaders()
+    {
+        return $this->includedHeaders;
+    }
   
-  public function computeSignatureMock($headers, $url, $queryParams, $httpMethod)
-  {
-    return parent::computeSignature($headers, $url, $queryParams, $httpMethod);
-  }
+    public function computeSignatureMock($headers, $url, $queryParams, $httpMethod)
+    {
+        return parent::computeSignature($headers, $url, $queryParams, $httpMethod);
+    }
 }
-
-

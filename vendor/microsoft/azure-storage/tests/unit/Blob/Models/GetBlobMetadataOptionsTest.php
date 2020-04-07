@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Blob\Models\AccessCondition;
 use MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataOptions;
@@ -34,7 +35,6 @@ use MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataOptions;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetBlobMetadataOptionsTest extends \PHPUnit_Framework_TestCase
@@ -58,36 +58,36 @@ class GetBlobMetadataOptionsTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataOptions::getAccessCondition
+     * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataOptions::getAccessConditions
      */
-    public function testGetAccessCondition()
+    public function testGetAccessConditions()
     {
         // Setup
         $expected = AccessCondition::none();
         $result = new GetBlobMetadataOptions();
-        $result->setAccessCondition($expected);
+        $result->setAccessConditions($expected);
         
         // Test
-        $actual = $result->getAccessCondition();
+        $actual = $result->getAccessConditions();
         
         // Assert
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals($expected, $actual[0]);
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataOptions::setAccessCondition
+     * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataOptions::setAccessConditions
      */
-    public function testSetAccessCondition()
+    public function testSetAccessConditions()
     {
         // Setup
         $expected = AccessCondition::none();
         $result = new GetBlobMetadataOptions();
         
         // Test
-        $result->setAccessCondition($expected);
+        $result->setAccessConditions($expected);
         
         // Assert
-        $this->assertEquals($expected, $result->getAccessCondition());
+        $this->assertEquals($expected, $result->getAccessConditions()[0]);
     }
     
     /**
@@ -123,5 +123,3 @@ class GetBlobMetadataOptionsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $actual);
     }
 }
-
-

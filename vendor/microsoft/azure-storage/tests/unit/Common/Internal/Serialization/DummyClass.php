@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,20 +23,19 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Common\Internal\Serialization;
+
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
 use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
 
-
 /**
- * Dummy class for Xml Serializer. 
+ * Dummy class for Xml Serializer.
  *
  * @category  Microsoft
  * @package   MicrosoftAzure\Storage\Tests\Unit\Common\Internal\Serialization
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class DummyClass
@@ -46,17 +45,15 @@ class DummyClass
     public function __construct()
     {
         $this->_attributes = array();
-    } 
+    }
 
     public function addAttribute($attributeKey, $attributeValue)
     {
         $this->_attributes[$attributeKey] = $attributeValue;
     }
 
-    public function getAttributes() 
+    public function getAttributes()
     {
         return $this->_attributes;
     }
 }
-
-

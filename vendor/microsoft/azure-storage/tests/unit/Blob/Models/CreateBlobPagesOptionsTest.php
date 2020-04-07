@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Blob\Models\CreateBlobPagesOptions;
 use MicrosoftAzure\Storage\Blob\Models\AccessCondition;
 
@@ -33,42 +34,41 @@ use MicrosoftAzure\Storage\Blob\Models\AccessCondition;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class CreateBlobPagesOptionsTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobPagesOptions::getAccessCondition
+     * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobPagesOptions::getAccessConditions
      */
-    public function testGetAccessCondition()
+    public function testGetAccessConditions()
     {
         // Setup
         $expected = AccessCondition::none();
         $options = new CreateBlobPagesOptions();
-        $options->setAccessCondition($expected);
+        $options->setAccessConditions($expected);
         
         // Test
-        $actual = $options->getAccessCondition();
+        $actual = $options->getAccessConditions();
         
         // Assert
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals($expected, $actual[0]);
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobPagesOptions::setAccessCondition
+     * @covers MicrosoftAzure\Storage\Blob\Models\CreateBlobPagesOptions::setAccessConditions
      */
-    public function testSetAccessCondition()
+    public function testSetAccessConditions()
     {
         // Setup
         $expected = AccessCondition::none();
         $options = new CreateBlobPagesOptions();
         
         // Test
-        $options->setAccessCondition($expected);
+        $options->setAccessConditions($expected);
         
         // Assert
-        $this->assertEquals($expected, $options->getAccessCondition());
+        $this->assertEquals($expected, $options->getAccessConditions()[0]);
     }
     
     /**
@@ -107,5 +107,3 @@ class CreateBlobPagesOptionsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $options->getLeaseId());
     }
 }
-
-

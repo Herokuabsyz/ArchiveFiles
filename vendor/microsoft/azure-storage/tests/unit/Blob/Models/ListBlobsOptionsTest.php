@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Blob\Models\ListBlobsOptions;
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 
@@ -33,7 +34,6 @@ use MicrosoftAzure\Storage\Tests\Framework\TestResources;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListBlobsOptionsTest extends \PHPUnit_Framework_TestCase
@@ -117,24 +117,7 @@ class ListBlobsOptionsTest extends \PHPUnit_Framework_TestCase
         $options->setMarker($expected);
         
         // Assert
-        $this->assertEquals($expected, $options->getMarker());
-    }
-    
-    /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobsOptions::getMarker
-     */
-    public function testGetMarker()
-    {
-        // Setup
-        $options = new ListBlobsOptions();
-        $expected = 'mymarker';
-        $options->setMarker($expected);
-        
-        // Test
-        $actual = $options->getMarker();
-        
-        // Assert
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals($expected, $options->getNextMarker());
     }
     
     /**
@@ -269,5 +252,3 @@ class ListBlobsOptionsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $actual);
     }
 }
-
-

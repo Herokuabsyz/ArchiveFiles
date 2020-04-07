@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,9 +22,12 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Blob\Models\GetBlobResult;
 use MicrosoftAzure\Storage\Blob\Models\BlobProperties;
+use MicrosoftAzure\Storage\Tests\Framework\TestResources;
+use GuzzleHttp\Psr7;
 
 /**
  * Unit tests for class GetBlobResult
@@ -34,93 +37,40 @@ use MicrosoftAzure\Storage\Blob\Models\BlobProperties;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetBlobResultTest extends \PHPUnit_Framework_TestCase
 {
+
     /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobResult::setMetadata
-     */
-    public function testSetMetadata()
-    {
-        // Setup
-        $properties = new GetBlobResult();
-        $expected = array('key1' => 'value1', 'key2' => 'value2');
-        
-        // Test
-        $properties->setMetadata($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $properties->getMetadata());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobResult::getMetadata
-     */
-    public function testGetMetadata()
-    {
-        // Setup
-        $properties = new GetBlobResult();
-        $expected = array('key1' => 'value1', 'key2' => 'value2');
-        $properties->setMetadata($expected);
-        
-        // Test
-        $actual = $properties->getMetadata();
-        
-        // Assert
-        $this->assertEquals($expected, $actual);
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobResult::setProperties
-     */
-    public function testSetProperties()
-    {
-        // Setup
-        $properties = new GetBlobResult();
-        $expected = new BlobProperties();
-        
-        // Test
-        $properties->setProperties($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $properties->getProperties());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobResult::getProperties
-     */
-    public function testGetProperties()
-    {
-        // Setup
-        $properties = new GetBlobResult();
-        $expected = new BlobProperties();
-        $properties->setProperties($expected);
-        
-        // Test
-        $actual = $properties->getProperties();
-        
-        // Assert
-        $this->assertEquals($expected, $actual);
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobResult::setContentStream
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobResult::getContentStream
+     * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobResult::create
      */
-    public function testSetContentStream()
+    public function testCreate()
     {
         // Setup
-        $expected = Utilities::stringToStream('0x8CAFB82EFF70C46');
-        $result = new GetBlobResult();
+        $sample = TestResources::listBlobsOneEntry();
+        $expected = $sample['Blobs']['Blob']['Properties'];
+        $expectedProperties = BlobProperties::createFromHttpHeaders($expected);
+        $expectedMetadata = $sample['Blobs']['Blob']['Metadata'];
+        $expectedBody = 'test data';
         
         // Test
-        $result->setContentStream($expected);
+        $actual = GetBlobResult::create(
+            $expected,
+            Psr7\stream_for($expectedBody),
+            $expectedMetadata
+        );
         
         // Assert
-        $this->assertEquals($expected, $result->getContentStream());
+        $this->assertEquals($expectedProperties, $actual->getProperties());
+        $this->assertEquals($expectedMetadata, $actual->getMetadata());
+        $actualContent = stream_get_contents($actual->getContentStream());
+        $this->assertEquals($expectedBody, $actualContent);
     }
 }
-
-

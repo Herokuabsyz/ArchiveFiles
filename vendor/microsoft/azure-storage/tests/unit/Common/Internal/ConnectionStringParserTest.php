@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Common\Internal;
+
 use MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser;
 
 /**
@@ -33,7 +34,6 @@ use MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ConnectionStringParserTest extends \PHPUnit_Framework_TestCase
@@ -65,7 +65,7 @@ class ConnectionStringParserTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString 
+     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::__construct
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_parse
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_createException
@@ -95,7 +95,7 @@ class ConnectionStringParserTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString 
+     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::__construct
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_parse
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_createException
@@ -113,7 +113,7 @@ class ConnectionStringParserTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString 
+     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::__construct
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_parse
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_createException
@@ -150,7 +150,7 @@ class ConnectionStringParserTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString 
+     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::__construct
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_parse
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_createException
@@ -170,7 +170,7 @@ class ConnectionStringParserTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString 
+     * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::parseConnectionString
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::__construct
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_parse
      * @covers MicrosoftAzure\Storage\Common\Internal\ConnectionStringParser::_createException
@@ -202,5 +202,3 @@ class ConnectionStringParserTest extends \PHPUnit_Framework_TestCase
         $this->_parseTestFail("\"a\"b=c");    // Extra character after double-quoted key;
     }
 }
-
-

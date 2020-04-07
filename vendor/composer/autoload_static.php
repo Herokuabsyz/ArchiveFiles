@@ -11,33 +11,19 @@ class ComposerStaticInit73f5fc13e54a440e95e382988978a92e
         'c964ee0ededf28c96ebd9db5099ef910' => __DIR__ . '/..' . '/guzzlehttp/promises/src/functions_include.php',
         'a0edc8309cc5e1d60e3047b5df6b7052' => __DIR__ . '/..' . '/guzzlehttp/psr7/src/functions_include.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
-        '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
-        'b067bc7112e384b61c701452d53a14a8' => __DIR__ . '/..' . '/mtdowling/jmespath.php/src/JmesPath.php',
-        '8a9dc1de0ca7e01f3e08231539562f61' => __DIR__ . '/..' . '/aws/aws-sdk-php/src/functions.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        'W' => 
-        array (
-            'WindowsAzure\\' => 13,
-        ),
-        'S' => 
-        array (
-            'Symfony\\Polyfill\\Mbstring\\' => 26,
-        ),
         'P' => 
         array (
             'Psr\\Http\\Message\\' => 17,
         ),
         'M' => 
         array (
+            'MicrosoftAzure\\Storage\\Queue\\' => 29,
             'MicrosoftAzure\\Storage\\Common\\' => 30,
             'MicrosoftAzure\\Storage\\Blob\\' => 28,
             'MicrosoftAzure\\Storage\\' => 23,
-        ),
-        'J' => 
-        array (
-            'JmesPath\\' => 9,
         ),
         'G' => 
         array (
@@ -45,28 +31,16 @@ class ComposerStaticInit73f5fc13e54a440e95e382988978a92e
             'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
         ),
-        'F' => 
-        array (
-            'Firebase\\JWT\\' => 13,
-        ),
-        'A' => 
-        array (
-            'Aws\\' => 4,
-        ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'WindowsAzure\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/microsoft/windowsazure/src',
-        ),
-        'Symfony\\Polyfill\\Mbstring\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
-        ),
         'Psr\\Http\\Message\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/http-message/src',
+        ),
+        'MicrosoftAzure\\Storage\\Queue\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/microsoft/azure-storage-queue/src/Queue',
         ),
         'MicrosoftAzure\\Storage\\Common\\' => 
         array (
@@ -80,10 +54,6 @@ class ComposerStaticInit73f5fc13e54a440e95e382988978a92e
         array (
             0 => __DIR__ . '/..' . '/microsoft/azure-storage/src',
         ),
-        'JmesPath\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/mtdowling/jmespath.php/src',
-        ),
         'GuzzleHttp\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
@@ -96,57 +66,6 @@ class ComposerStaticInit73f5fc13e54a440e95e382988978a92e
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
-        'Firebase\\JWT\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
-        ),
-        'Aws\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/aws/aws-sdk-php/src',
-        ),
-    );
-
-    public static $prefixesPsr0 = array (
-        'P' => 
-        array (
-            'PEAR' => 
-            array (
-                0 => __DIR__ . '/..' . '/pear/pear_exception',
-            ),
-        ),
-        'M' => 
-        array (
-            'Mail_mimeDecode' => 
-            array (
-                0 => __DIR__ . '/..' . '/pear/mail_mime-decode',
-            ),
-            'Mail' => 
-            array (
-                0 => __DIR__ . '/..' . '/pear/mail_mime',
-            ),
-        ),
-        'H' => 
-        array (
-            'HTTP_Request2' => 
-            array (
-                0 => __DIR__ . '/..' . '/pear/http_request2',
-            ),
-        ),
-        'C' => 
-        array (
-            'Console' => 
-            array (
-                0 => __DIR__ . '/..' . '/pear/console_getopt',
-            ),
-        ),
-    );
-
-    public static $fallbackDirsPsr0 = array (
-        0 => __DIR__ . '/..' . '/pear/pear-core-minimal/src',
-    );
-
-    public static $classMap = array (
-        'Net_URL2' => __DIR__ . '/..' . '/pear/net_url2/Net/URL2.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
@@ -154,9 +73,6 @@ class ComposerStaticInit73f5fc13e54a440e95e382988978a92e
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInit73f5fc13e54a440e95e382988978a92e::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInit73f5fc13e54a440e95e382988978a92e::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit73f5fc13e54a440e95e382988978a92e::$prefixesPsr0;
-            $loader->fallbackDirsPsr0 = ComposerStaticInit73f5fc13e54a440e95e382988978a92e::$fallbackDirsPsr0;
-            $loader->classMap = ComposerStaticInit73f5fc13e54a440e95e382988978a92e::$classMap;
 
         }, null, ClassLoader::class);
     }

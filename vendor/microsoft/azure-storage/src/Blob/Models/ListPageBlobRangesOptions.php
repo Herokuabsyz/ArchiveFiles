@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,7 +23,9 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Validate;
+use MicrosoftAzure\Storage\Common\Models\Range;
 
 /**
  * Optional parameters for listPageBlobRanges wrapper
@@ -33,147 +35,56 @@ use MicrosoftAzure\Storage\Common\Internal\Validate;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListPageBlobRangesOptions extends BlobServiceOptions
 {
-    /**
-     * @var string
-     */
-    private $_leaseId;
-    
-    /**
-     * @var string
-     */
-    private $_snapshot;
-    
-    /**
-     * @var integer
-     */
+    private $snapshot;
+    private $range;
     private $_rangeStart;
-    
-    /**
-     * @var integer
-     */
     private $_rangeEnd;
-    
-    /**
-     * @var AccessCondition
-     */
-    private $_accessCondition;
-    
-    /**
-     * Gets lease Id for the blob
-     * 
-     * @return string
-     */
-    public function getLeaseId()
-    {
-        return $this->_leaseId;
-    }
-    
-    /**
-     * Sets lease Id for the blob
-     * 
-     * @param string $leaseId the blob lease id.
-     * 
-     * @return none
-     */
-    public function setLeaseId($leaseId)
-    {
-        $this->_leaseId = $leaseId;
-    }
     
     /**
      * Gets blob snapshot.
      *
-     * @return string.
+     * @return string
      */
     public function getSnapshot()
     {
-        return $this->_snapshot;
+        return $this->snapshot;
     }
 
     /**
      * Sets blob snapshot.
      *
      * @param string $snapshot value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setSnapshot($snapshot)
     {
-        $this->_snapshot = $snapshot;
+        $this->snapshot = $snapshot;
     }
-    
+
     /**
-     * Gets rangeStart
-     * 
-     * @return integer
+     * Gets Blob range.
+     *
+     * @return Range
      */
-    public function getRangeStart()
+    public function getRange()
     {
-        return $this->_rangeStart;
+        return $this->range;
     }
-    
+
     /**
-     * Sets rangeStart
-     * 
-     * @param integer $rangeStart the blob lease id.
-     * 
-     * @return none
+     * Sets Blob range.
+     *
+     * @param Range $range value.
+     *
+     * @return void
      */
-    public function setRangeStart($rangeStart)
+    public function setRange(Range $range)
     {
-        Validate::isInteger($rangeStart, 'rangeStart');
-        $this->_rangeStart = $rangeStart;
-    }
-    
-    /**
-     * Gets rangeEnd
-     * 
-     * @return integer
-     */
-    public function getRangeEnd()
-    {
-        return $this->_rangeEnd;
-    }
-    
-    /**
-     * Sets rangeEnd
-     * 
-     * @param integer $rangeEnd range end value in bytes
-     * 
-     * @return none
-     */
-    public function setRangeEnd($rangeEnd)
-    {
-        Validate::isInteger($rangeEnd, 'rangeEnd');
-        $this->_rangeEnd = $rangeEnd;
-    }
-    
-    /**
-     * Gets access condition
-     * 
-     * @return AccessCondition
-     */
-    public function getAccessCondition()
-    {
-        return $this->_accessCondition;
-    }
-    
-    /**
-     * Sets access condition
-     * 
-     * @param AccessCondition $accessCondition value to use.
-     * 
-     * @return none.
-     */
-    public function setAccessCondition($accessCondition)
-    {
-        $this->_accessCondition = $accessCondition;
+        $this->range = $range;
     }
 }
-
-

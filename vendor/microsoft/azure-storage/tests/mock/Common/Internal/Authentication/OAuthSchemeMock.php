@@ -23,6 +23,7 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Mock\Common\Internal\Authentication;
+
 use MicrosoftAzure\Storage\Common\Internal\Authentication\OAuthScheme;
 
 /**
@@ -32,7 +33,6 @@ use MicrosoftAzure\Storage\Common\Internal\Authentication\OAuthScheme;
  * @author     Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright  2016 Microsoft Corporation
  * @license    https://github.com/azure/azure-storage-php/LICENSE
- * @version    Release: 0.10.2
  * @link       https://github.com/azure/azure-storage-php
  */
 class OAuthSchemeMock extends OAuthScheme
@@ -67,5 +67,3 @@ class OAuthSchemeMock extends OAuthScheme
         return $this->oauthService;
     }
 }
-
-

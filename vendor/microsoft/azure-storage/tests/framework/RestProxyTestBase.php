@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,7 +23,8 @@
  */
  
 namespace MicrosoftAzure\Storage\Tests\Framework;
-use MicrosoftAzure\Storage\Common\Internal\Logger;
+
+use MicrosoftAzure\Storage\Common\Logger;
 use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
 use MicrosoftAzure\Storage\Common\ServicesBuilder;
 
@@ -35,7 +36,6 @@ use MicrosoftAzure\Storage\Common\ServicesBuilder;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class RestProxyTestBase extends \PHPUnit_Framework_TestCase
@@ -83,5 +83,3 @@ class RestProxyTestBase extends \PHPUnit_Framework_TestCase
         throw $e;
     }
 }
-
-

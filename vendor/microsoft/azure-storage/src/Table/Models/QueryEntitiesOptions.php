@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -24,6 +24,8 @@
  
 namespace MicrosoftAzure\Storage\Table\Models;
 
+use MicrosoftAzure\Storage\Table\Internal\AcceptOptionTrait;
+
 /**
  * Holds optional parameters for queryEntities API
  *
@@ -32,101 +34,47 @@ namespace MicrosoftAzure\Storage\Table\Models;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class QueryEntitiesOptions extends TableServiceOptions
 {
-    /**
-     * @var Query
-     */
-    private $_query;
-    
-    /**
-     * @var string
-     */
-    private $_nextPartitionKey;
-    
-    /**
-     * @var string
-     */
-    private $_nextRowKey;
-    
+    use TableContinuationTokenTrait;
+    use AcceptOptionTrait;
+
+    private $query;
+
     /**
      * Constructs new QueryEntitiesOptions object.
      */
     public function __construct()
     {
-        $this->_query = new Query();
+        parent::__construct();
+        $this->query = new Query();
     }
     
     /**
      * Gets query.
-     * 
+     *
      * @return Query
      */
     public function getQuery()
     {
-        return $this->_query;
+        return $this->query;
     }
     
     /**
      * Sets query.
-     * 
+     *
      * You can either sets the whole query *or* use the individual query functions
      * like (setTop).
-     * 
-     * @param string $query The query instance.
-     * 
-     * @return none
+     *
+     * @param Query $query The query instance.
+     *
+     * @return void
      */
-    public function setQuery($query)
+    public function setQuery(Query $query)
     {
-        $this->_query = $query;
-    }
-    
-    /**
-     * Gets entity next partition key.
-     *
-     * @return string
-     */
-    public function getNextPartitionKey()
-    {
-        return $this->_nextPartitionKey;
-    }
-
-    /**
-     * Sets entity next partition key.
-     *
-     * @param string $nextPartitionKey The entity next partition key value.
-     *
-     * @return none
-     */
-    public function setNextPartitionKey($nextPartitionKey)
-    {
-        $this->_nextPartitionKey = $nextPartitionKey;
-    }
-    
-    /**
-     * Gets entity next row key.
-     *
-     * @return string
-     */
-    public function getNextRowKey()
-    {
-        return $this->_nextRowKey;
-    }
-
-    /**
-     * Sets entity next row key.
-     *
-     * @param string $nextRowKey The entity next row key value.
-     *
-     * @return none
-     */
-    public function setNextRowKey($nextRowKey)
-    {
-        $this->_nextRowKey = $nextRowKey;
+        $this->query = $query;
     }
     
     /**
@@ -136,7 +84,7 @@ class QueryEntitiesOptions extends TableServiceOptions
      */
     public function getFilter()
     {
-        return $this->_query->getFilter();
+        return $this->query->getFilter();
     }
 
     /**
@@ -144,24 +92,24 @@ class QueryEntitiesOptions extends TableServiceOptions
      *
      * You can either use this individual function or use setQuery to set the whole
      * query object.
-     * 
+     *
      * @param Filters\Filter $filter value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
-    public function setFilter($filter)
+    public function setFilter(Filters\Filter $filter)
     {
-        $this->_query->setFilter($filter);
+        $this->query->setFilter($filter);
     }
     
     /**
      * Gets top.
      *
-     * @return integer.
+     * @return integer
      */
     public function getTop()
     {
-        return $this->_query->getTop();
+        return $this->query->getTop();
     }
 
     /**
@@ -169,39 +117,39 @@ class QueryEntitiesOptions extends TableServiceOptions
      *
      * You can either use this individual function or use setQuery to set the whole
      * query object.
-     * 
+     *
      * @param integer $top value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setTop($top)
     {
-        $this->_query->setTop($top);
+        $this->query->setTop($top);
     }
     
     /**
      * Adds a field to select fields.
-     * 
+     *
      * You can either use this individual function or use setQuery to set the whole
      * query object.
-     * 
+     *
      * @param string $field The value of the field.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function addSelectField($field)
     {
-        $this->_query->addSelectField($field);
+        $this->query->addSelectField($field);
     }
     
     /**
      * Gets selectFields.
      *
-     * @return array.
+     * @return array
      */
     public function getSelectFields()
     {
-        return $this->_query->getSelectFields();
+        return $this->query->getSelectFields();
     }
 
     /**
@@ -209,15 +157,13 @@ class QueryEntitiesOptions extends TableServiceOptions
      *
      * You can either use this individual function or use setQuery to set the whole
      * query object.
-     * 
+     *
      * @param array $selectFields value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
-    public function setSelectFields($selectFields)
+    public function setSelectFields(array $selectFields = null)
     {
-        $this->_query->setSelectFields($selectFields);
+        $this->query->setSelectFields($selectFields);
     }
 }
-
-

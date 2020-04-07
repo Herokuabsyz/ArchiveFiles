@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,10 +23,11 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
-use MicrosoftAzure\Storage\Blob\Models\Container;
-use MicrosoftAzure\Storage\Tests\Unit\Common\Internal\UtilitiesTest;
+use MicrosoftAzure\Storage\Common\Models\MarkerContinuationToken;
+use MicrosoftAzure\Storage\Common\MarkerContinuationTokenTrait;
 
 /**
  * Container to hold list container response object.
@@ -36,49 +37,30 @@ use MicrosoftAzure\Storage\Tests\Unit\Common\Internal\UtilitiesTest;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListContainersResult
 {
-    /**
-     * @var array
-     */
-    private $_containers;
-    
-    /**
-     * @var string
-     */
-    private $_prefix;
-    
-    /**
-     * @var string
-     */
-    private $_marker;
-    
-    /**
-     * @var string
-     */
-    private $_nextMarker;
-    
-    /**
-     * @var integer
-     */
-    private $_maxResults;
-    
-    /**
-     * @var string
-     */
-    private $_accountName;
+    use MarkerContinuationTokenTrait;
+
+    private $containers;
+    private $prefix;
+    private $marker;
+    private $maxResults;
+    private $accountName;
 
     /**
      * Creates ListBlobResult object from parsed XML response.
      *
-     * @param array $parsedResponse XML response parsed into array.
-     * 
-     * @return ListBlobResult
+     * @param array  $parsedResponse XML response parsed into array.
+     * @param string $location       Contains the location for the previous
+     *                               request.
+     *
+     * @internal
+     *
+     * @return ListContainersResult
      */
-    public static function create($parsedResponse)
+    public static function create(array $parsedResponse, $location = '')
     {
         $result               = new ListContainersResult();
         $serviceEndpoint      = Utilities::tryGetKeysChainValue(
@@ -86,25 +68,38 @@ class ListContainersResult
             Resources::XTAG_ATTRIBUTES,
             Resources::XTAG_SERVICE_ENDPOINT
         );
-        $result->_accountName = Utilities::tryParseAccountNameFromUrl(
+        $result->setAccountName(Utilities::tryParseAccountNameFromUrl(
             $serviceEndpoint
-        );
-        $result->_prefix      = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_PREFIX
-        );
-        $result->_marker      = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_MARKER
-        );
-        $result->_nextMarker  = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_NEXT_MARKER
-        );
-        $result->_maxResults  = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_MAX_RESULTS
-        );
-        $result->_containers  = array();
-        $rawContainer         = array();
+        ));
+        $result->setPrefix(Utilities::tryGetValue(
+            $parsedResponse,
+            Resources::QP_PREFIX
+        ));
+        $result->setMarker(Utilities::tryGetValue(
+            $parsedResponse,
+            Resources::QP_MARKER
+        ));
+
+        $nextMarker =
+            Utilities::tryGetValue($parsedResponse, Resources::QP_NEXT_MARKER);
+
+        if ($nextMarker != null) {
+            $result->setContinuationToken(
+                new MarkerContinuationToken(
+                    $nextMarker,
+                    $location
+                )
+            );
+        }
         
-        if ( !empty($parsedResponse['Containers']) ) {
+        $result->setMaxResults(Utilities::tryGetValue(
+            $parsedResponse,
+            Resources::QP_MAX_RESULTS
+        ));
+        $containers   = array();
+        $rawContainer = array();
+        
+        if (!empty($parsedResponse['Containers'])) {
             $containersArray = $parsedResponse['Containers']['Container'];
             $rawContainer    = Utilities::getArray($containersArray);
         }
@@ -121,10 +116,23 @@ class ListContainersResult
             $date       = Utilities::rfc1123ToDateTime($date);
             $properties->setLastModified($date);
             $properties->setETag($value['Properties']['Etag']);
+            
+            if (array_key_exists('LeaseStatus', $value['Properties'])) {
+                $properties->setLeaseStatus($value['Properties']['LeaseStatus']);
+            }
+            if (array_key_exists('LeaseState', $value['Properties'])) {
+                $properties->setLeaseStatus($value['Properties']['LeaseState']);
+            }
+            if (array_key_exists('LeaseDuration', $value['Properties'])) {
+                $properties->setLeaseStatus($value['Properties']['LeaseDuration']);
+            }
+            if (array_key_exists('PublicAccess', $value['Properties'])) {
+                $properties->setPublicAccess($value['Properties']['PublicAccess']);
+            }
             $container->setProperties($properties);
-            $result->_containers[] = $container;
+            $containers[] = $container;
         }
-        
+        $result->setContainers($containers);
         return $result;
     }
 
@@ -132,25 +140,25 @@ class ListContainersResult
      * Sets containers.
      *
      * @param array $containers list of containers.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setContainers($containers)
+    protected function setContainers(array $containers)
     {
-        $this->_containers = array();
+        $this->containers = array();
         foreach ($containers as $container) {
-            $this->_containers[] = clone $container;
+            $this->containers[] = clone $container;
         }
     }
     
     /**
      * Gets containers.
      *
-     * @return array
+     * @return Container[]
      */
     public function getContainers()
     {
-        return $this->_containers;
+        return $this->containers;
     }
 
     /**
@@ -160,106 +168,84 @@ class ListContainersResult
      */
     public function getPrefix()
     {
-        return $this->_prefix;
+        return $this->prefix;
     }
 
     /**
      * Sets prefix.
      *
      * @param string $prefix value.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setPrefix($prefix)
+    protected function setPrefix($prefix)
     {
-        $this->_prefix = $prefix;
+        $this->prefix = $prefix;
     }
 
     /**
      * Gets marker.
-     * 
+     *
      * @return string
      */
     public function getMarker()
     {
-        return $this->_marker;
+        return $this->marker;
     }
 
     /**
      * Sets marker.
      *
      * @param string $marker value.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setMarker($marker)
+    protected function setMarker($marker)
     {
-        $this->_marker = $marker;
+        $this->marker = $marker;
     }
 
     /**
      * Gets max results.
-     * 
+     *
      * @return string
      */
     public function getMaxResults()
     {
-        return $this->_maxResults;
+        return $this->maxResults;
     }
 
     /**
      * Sets max results.
      *
      * @param string $maxResults value.
-     * 
-     * @return none
-     */
-    public function setMaxResults($maxResults)
-    {
-        $this->_maxResults = $maxResults;
-    }
-
-    /**
-     * Gets next marker.
-     * 
-     * @return string
-     */
-    public function getNextMarker()
-    {
-        return $this->_nextMarker;
-    }
-
-    /**
-     * Sets next marker.
      *
-     * @param string $nextMarker value.
-     * 
-     * @return none
+     * @return void
      */
-    public function setNextMarker($nextMarker)
+    protected function setMaxResults($maxResults)
     {
-        $this->_nextMarker = $nextMarker;
+        $this->maxResults = $maxResults;
     }
-    
+
     /**
      * Gets account name.
-     * 
+     *
      * @return string
      */
     public function getAccountName()
     {
-        return $this->_accountName;
+        return $this->accountName;
     }
 
     /**
      * Sets account name.
      *
      * @param string $accountName value.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setAccountName($accountName)
+    protected function setAccountName($accountName)
     {
-        $this->_accountName = $accountName;
+        $this->accountName = $accountName;
     }
 }

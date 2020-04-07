@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -24,8 +24,11 @@
 
 namespace MicrosoftAzure\Storage\Tests\Functional\Queue;
 
+use MicrosoftAzure\Storage\Tests\Framework\TestResources;
+use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Models\Logging;
 use MicrosoftAzure\Storage\Common\Models\Metrics;
+use MicrosoftAzure\Storage\Common\Models\CORS;
 use MicrosoftAzure\Storage\Common\Models\RetentionPolicy;
 use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
 use MicrosoftAzure\Storage\Queue\Models\CreateMessageOptions;
@@ -34,7 +37,10 @@ use MicrosoftAzure\Storage\Queue\Models\ListQueuesOptions;
 
 class QueueServiceFunctionalTestData
 {
-    const INTERESTING_TTL = 4;
+    //Needs to keep this value as low as possible to quicken the test
+    //but if the test machine is slow, a small value will cause unexpected
+    //failures. Default value: 20.
+    const INTERESTING_TTL = 20;
     public static $testUniqueId;
     public static $tempQueueCounter;
     public static $nonExistQueuePrefix;
@@ -68,9 +74,9 @@ class QueueServiceFunctionalTestData
         $ret = array();
         array_push($ret, null);
         array_push($ret, -1);
-        array_push($ret,  0);
-        array_push($ret,  1);
-        array_push($ret,-2147483648);
+        array_push($ret, 0);
+        array_push($ret, 1);
+        array_push($ret, -2147483648);
         array_push($ret, 2147483647);
         return $ret;
     }
@@ -94,7 +100,7 @@ class QueueServiceFunctionalTestData
 
         $sp = new ServiceProperties();
         $sp->setLogging($l);
-        $sp->setMetrics($m);
+        $sp->setHourMetrics($m);
 
         return $sp;
     }
@@ -128,11 +134,14 @@ class QueueServiceFunctionalTestData
             $m->setEnabled(true);
             $m->setIncludeAPIs(true);
 
+            $c = CORS::create(TestResources::getCORSSingle());
+
             $sp = new ServiceProperties();
             $sp->setLogging($l);
-            $sp->setMetrics($m);
+            $sp->setHourMetrics($m);
+            $sp->setCorses(array($c));
 
-            array_push($ret,$sp);
+            array_push($ret, $sp);
         }
 
         {
@@ -156,11 +165,17 @@ class QueueServiceFunctionalTestData
             $m->setEnabled(true);
             $m->setIncludeAPIs(true);
 
+            $csArray =
+                TestResources::getServicePropertiesSample()[Resources::XTAG_CORS];
+            $c0 = CORS::create($csArray[Resources::XTAG_CORS_RULE][0]);
+            $c1 = CORS::create($csArray[Resources::XTAG_CORS_RULE][1]);
+
             $sp = new ServiceProperties();
             $sp->setLogging($l);
-            $sp->setMetrics($m);
+            $sp->setHourMetrics($m);
+            $sp->setCorses(array($c0, $c1));
 
-            array_push($ret,$sp);
+            array_push($ret, $sp);
         }
 
         {
@@ -184,11 +199,17 @@ class QueueServiceFunctionalTestData
             $m->setIncludeAPIs(null);
             $m->setRetentionPolicy($rp);
 
+            $csArray =
+                TestResources::getServicePropertiesSample()[Resources::XTAG_CORS];
+            $c0 = CORS::create($csArray[Resources::XTAG_CORS_RULE][0]);
+            $c1 = CORS::create($csArray[Resources::XTAG_CORS_RULE][1]);
+
             $sp = new ServiceProperties();
             $sp->setLogging($l);
-            $sp->setMetrics($m);
+            $sp->setHourMetrics($m);
+            $sp->setCorses(array($c0, $c1));
 
-            array_push($ret,$sp);
+            array_push($ret, $sp);
         }
 
         return $ret;
@@ -200,7 +221,7 @@ class QueueServiceFunctionalTestData
 
         // Some metadata that HTTP will not like.
         $metadata = array('<>000' => '::::value');
-        array_push($ret,$metadata);
+        array_push($ret, $metadata);
 
         return $ret;
     }

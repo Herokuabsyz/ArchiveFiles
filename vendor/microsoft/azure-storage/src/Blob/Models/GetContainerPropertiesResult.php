@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -24,6 +24,11 @@
  
 namespace MicrosoftAzure\Storage\Blob\Models;
 
+use MicrosoftAzure\Storage\Common\Internal\MetadataTrait;
+use MicrosoftAzure\Storage\Common\Internal\Resources;
+use MicrosoftAzure\Storage\Common\Internal\Utilities;
+use MicrosoftAzure\Storage\Common\Internal\Validate;
+
 /**
  * Holds result of getContainerProperties and getContainerMetadata
  *
@@ -32,95 +37,139 @@ namespace MicrosoftAzure\Storage\Blob\Models;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetContainerPropertiesResult
 {
-    /**
-     * @var \DateTime
-     */
-    private $_lastModified;
+    use MetadataTrait;
+
+    private $leaseStatus;
+    private $leaseState;
+    private $leaseDuration;
+    private $publicAccess;
     
     /**
-     * @var string
-     */
-    private $_etag;
-    
-    /**
-     * @var array
-     */
-    private $_metadata; 
-    
-    /**
-     * Any operation that modifies the container or its properties or metadata 
-     * updates the last modified time. Operations on blobs do not affect the last 
-     * modified time of the container.
+     * Gets blob leaseStatus.
      *
-     * @return \DateTime.
+     * @return string
      */
-    public function getLastModified()
+    public function getLeaseStatus()
     {
-        return $this->_lastModified;
+        return $this->leaseStatus;
     }
 
     /**
-     * Sets container lastModified.
+     * Sets blob leaseStatus.
      *
-     * @param \DateTime $lastModified value.
-     * 
-     * @return none.
+     * @param string $leaseStatus value.
+     *
+     * @return void
      */
-    public function setLastModified($lastModified)
+    public function setLeaseStatus($leaseStatus)
     {
-        $this->_lastModified = $lastModified;
+        $this->leaseStatus = $leaseStatus;
     }
     
     /**
-     * The entity tag for the container. If the request version is 2011-08-18 or 
-     * newer, the ETag value will be in quotes.
+     * Gets blob lease state.
      *
-     * @return string.
+     * @return string
      */
-    public function getETag()
+    public function getLeaseState()
     {
-        return $this->_etag;
+        return $this->leaseState;
     }
 
     /**
-     * Sets container etag.
+     * Sets blob lease state.
      *
-     * @param string $etag value.
-     * 
-     * @return none.
+     * @param string $leaseState value.
+     *
+     * @return void
      */
-    public function setETag($etag)
+    public function setLeaseState($leaseState)
     {
-        $this->_etag = $etag;
+        $this->leaseState = $leaseState;
     }
     
     /**
-     * Gets user defined metadata.
-     * 
-     * @return array.
+     * Gets blob lease duration.
+     *
+     * @return string
      */
-    public function getMetadata()
+    public function getLeaseDuration()
     {
-        return $this->_metadata;
+        return $this->leaseDuration;
     }
-    
+
     /**
-     * Sets user defined metadata. This metadata should be added without the header
-     * prefix (x-ms-meta-*).
-     * 
-     * @param array $metadata user defined metadata object in array form.
-     * 
-     * @return none.
+     * Sets blob leaseStatus.
+     *
+     * @param string $leaseDuration value.
+     *
+     * @return void
      */
-    public function setMetadata($metadata)
+    public function setLeaseDuration($leaseDuration)
     {
-        $this->_metadata = $metadata;
+        $this->leaseDuration = $leaseDuration;
+    }
+
+    /**
+     * Gets container publicAccess.
+     *
+     * @return string
+     */
+    public function getPublicAccess()
+    {
+        return $this->publicAccess;
+    }
+
+    /**
+     * Sets container publicAccess.
+     *
+     * @param string $publicAccess value.
+     *
+     * @return void
+     */
+    public function setPublicAccess($publicAccess)
+    {
+        Validate::isTrue(
+            PublicAccessType::isValid($publicAccess),
+            Resources::INVALID_BLOB_PAT_MSG
+        );
+        $this->publicAccess = $publicAccess;
+    }
+
+    /**
+     * Create an instance using the response headers from the API call.
+     *
+     * @param  array  $responseHeaders The array contains all the response headers
+     *
+     * @internal
+     *
+     * @return GetContainerPropertiesResult
+     */
+    public static function create(array $responseHeaders)
+    {
+        $result   = static::createMetadataResult($responseHeaders);
+
+        $result->setLeaseStatus(Utilities::tryGetValueInsensitive(
+            Resources::X_MS_LEASE_STATUS,
+            $responseHeaders
+        ));
+        $result->setLeaseState(Utilities::tryGetValueInsensitive(
+            Resources::X_MS_LEASE_STATE,
+            $responseHeaders
+        ));
+        $result->setLeaseDuration(Utilities::tryGetValueInsensitive(
+            Resources::X_MS_LEASE_DURATION,
+            $responseHeaders
+        ));
+        $result->setPublicAccess(Utilities::tryGetValueInsensitive(
+            Resources::X_MS_BLOB_PUBLIC_ACCESS,
+            $responseHeaders
+        ));
+
+        return $result;
     }
 }
-
-

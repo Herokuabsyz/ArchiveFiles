@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Framework;
+
 use MicrosoftAzure\Storage\Tests\Framework\ServiceRestProxyTestBase;
 use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
 
@@ -33,7 +34,6 @@ use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class QueueServiceRestProxyTestBase extends ServiceRestProxyTestBase
@@ -61,14 +61,14 @@ class QueueServiceRestProxyTestBase extends ServiceRestProxyTestBase
     
     public function safeDeleteQueue($queueName)
     {
-        try
-        {
+        try {
             $this->deleteQueue($queueName);
-        }
-        catch (\Exception $e)
-        {
-            // Ignore exception and continue, will assume that this queue doesn't exist in the sotrage account
-            error_log($e->getMessage());
+        } catch (\Exception $e) {
+            // Ignore exception and continue if the error message shows that the
+            // queue does not exist.
+            if (strpos($e->getMessage(), 'specified queue does not exist') == false) {
+                throw $e;
+            };
         }
     }
     
@@ -81,5 +81,3 @@ class QueueServiceRestProxyTestBase extends ServiceRestProxyTestBase
         }
     }
 }
-
-

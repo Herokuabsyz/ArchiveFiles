@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -24,6 +24,8 @@
  
 namespace MicrosoftAzure\Storage\Blob\Models;
 
+use MicrosoftAzure\Storage\Common\Internal\MetadataTrait;
+
 /**
  * Holds result of calling getBlobProperties
  *
@@ -32,47 +34,18 @@ namespace MicrosoftAzure\Storage\Blob\Models;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetBlobPropertiesResult
 {
-    /**
-     * @var BlobProperties
-     */
-    private $_properties;
-    
-    /**
-     * @var array
-     */
-    private $_metadata;
-    
-    /**
-     * Gets blob metadata.
-     *
-     * @return array.
-     */
-    public function getMetadata()
-    {
-        return $this->_metadata;
-    }
+    use MetadataTrait;
 
-    /**
-     * Sets blob metadata.
-     *
-     * @param string $metadata value.
-     * 
-     * @return none.
-     */
-    public function setMetadata($metadata)
-    {
-        $this->_metadata = $metadata;
-    }
+    private $_properties;
     
     /**
      * Gets blob properties.
      *
-     * @return BlobProperties.
+     * @return BlobProperties
      */
     public function getProperties()
     {
@@ -83,13 +56,29 @@ class GetBlobPropertiesResult
      * Sets blob properties.
      *
      * @param BlobProperties $properties value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
-    public function setProperties($properties)
+    protected function setProperties($properties)
     {
         $this->_properties = $properties;
     }
+
+    /**
+     * Create a instance using the given headers.
+     *
+     * @param  array  $headers response headers parsed in an array
+     *
+     * @internal
+     *
+     * @return GetBlobPropertiesResult
+     */
+    public static function create(array $headers)
+    {
+        $result = static::createMetadataResult($headers);
+
+        $result->setProperties(BlobProperties::createFromHttpHeaders($headers));
+        
+        return $result;
+    }
 }
-
-

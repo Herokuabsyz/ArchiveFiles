@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,9 +23,6 @@
  */
  
 namespace MicrosoftAzure\Storage\Table\Models;
-use MicrosoftAzure\Storage\Table\Models\EdmType;
-use MicrosoftAzure\Storage\Common\Internal\Validate;
-use MicrosoftAzure\Storage\Tests\Unit\Table\Models\EdmTypeTest;
 
 /**
  * Represents entity property.
@@ -35,65 +32,78 @@ use MicrosoftAzure\Storage\Tests\Unit\Table\Models\EdmTypeTest;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class Property
 {
-    /**
-     * @var string
-     */
-    private $_edmType;
-    
-    /**
-     * @var mix
-     */
-    private $_value;
+    private $edmType;
+    private $value;
+    private $rawValue;
     
     /**
      * Gets the type of the property.
-     * 
+     *
      * @return string
      */
     public function getEdmType()
     {
-        return $this->_edmType;
+        return $this->edmType;
     }
     
     /**
      * Sets the value of the property.
-     * 
+     *
      * @param string $edmType The property type.
-     * 
-     * @return none
+     *
+     * @return void
      */
     public function setEdmType($edmType)
     {
         EdmType::isValid($edmType);
-        $this->_edmType = $edmType;
+        $this->edmType = $edmType;
     }
     
     /**
      * Gets the value of the property.
-     * 
-     * @return string
+     *
+     * @return mixed
      */
     public function getValue()
     {
-        return $this->_value;
+        return $this->value;
     }
     
     /**
      * Sets the property value.
-     * 
-     * @param mix $value The value of property.
-     * 
-     * @return none
+     *
+     * @param mixed $value The value of property.
+     *
+     * @return void
      */
     public function setValue($value)
     {
-        $this->_value = $value;
+        $this->value = $value;
+    }
+
+    /**
+     * Gets the raw value of the property.
+     *
+     * @return string
+     */
+    public function getRawValue()
+    {
+        return $this->rawValue;
+    }
+    
+    /**
+     * Sets the raw property value.
+     *
+     * @param mixed $rawValue The raw value of property.
+     *
+     * @return void
+     */
+    public function setRawValue($rawValue)
+    {
+        $this->rawValue = $rawValue;
     }
 }
-
-

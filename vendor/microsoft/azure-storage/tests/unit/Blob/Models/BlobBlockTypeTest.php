@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Blob\Models\BlobBlockType;
 
 /**
@@ -32,7 +33,6 @@ use MicrosoftAzure\Storage\Blob\Models\BlobBlockType;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class BlobBlockTypeTest extends \PHPUnit_Framework_TestCase
@@ -47,5 +47,3 @@ class BlobBlockTypeTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(BlobBlockType::LATEST_TYPE, 'Latest');
     }
 }
-
-

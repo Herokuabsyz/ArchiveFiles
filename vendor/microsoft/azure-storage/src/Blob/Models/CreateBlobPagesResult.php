@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Internal\Validate;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
@@ -35,40 +36,27 @@ use MicrosoftAzure\Storage\Common\Internal\Utilities;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class CreateBlobPagesResult
 {
+    private $contentMD5;
+    private $etag;
+    private $lastModified;
+    private $requestServerEncrypted;
+    private $sequenceNumber;
+
     /**
-     * @var \DateTime
-     */
-    private $_lastModified;
-    
-    /**
-     * @var string
-     */
-    private $_etag;
-    
-    /**
-     * @var integer
-     */
-    private $_sequenceNumber;
-    
-    /**
-     * @var string
-     */
-    private $_contentMD5;
-    
-    /**
-     * Creates CreateBlobPagesResult object from $parsed response in array 
+     * Creates CreateBlobPagesResult object from $parsed response in array
      * representation
-     * 
+     *
      * @param array $headers HTTP response headers
-     * 
+     *
+     * @internal
+     *
      * @return CreateBlobPagesResult
      */
-    public static function create($headers)
+    public static function create(array $headers)
     {
         $result = new CreateBlobPagesResult();
         $clean  = array_change_key_case($headers);
@@ -77,12 +65,27 @@ class CreateBlobPagesResult
         $date = Utilities::rfc1123ToDateTime($date);
         $result->setETag($clean[Resources::ETAG]);
         $result->setLastModified($date);
+
         $result->setContentMD5(
             Utilities::tryGetValue($clean, Resources::CONTENT_MD5)
         );
+
+        $result->setRequestServerEncrypted(
+            Utilities::toBoolean(
+                Utilities::tryGetValueInsensitive(
+                    Resources::X_MS_REQUEST_SERVER_ENCRYPTED,
+                    $headers
+                ),
+                true
+            )
+        );
+
         $result->setSequenceNumber(
             intval(
-                Utilities::tryGetValue($clean, Resources::X_MS_BLOB_SEQUENCE_NUMBER)
+                Utilities::tryGetValue(
+                    $clean,
+                    Resources::X_MS_BLOB_SEQUENCE_NUMBER
+                )
             )
         );
         
@@ -96,7 +99,7 @@ class CreateBlobPagesResult
      */
     public function getLastModified()
     {
-        return $this->_lastModified;
+        return $this->lastModified;
     }
 
     /**
@@ -104,22 +107,22 @@ class CreateBlobPagesResult
      *
      * @param \DateTime $lastModified value.
      *
-     * @return none.
+     * @return void
      */
-    public function setLastModified($lastModified)
+    protected function setLastModified($lastModified)
     {
         Validate::isDate($lastModified);
-        $this->_lastModified = $lastModified;
+        $this->lastModified = $lastModified;
     }
 
     /**
      * Gets blob etag.
      *
-     * @return string.
+     * @return string
      */
     public function getETag()
     {
-        return $this->_etag;
+        return $this->etag;
     }
 
     /**
@@ -127,22 +130,22 @@ class CreateBlobPagesResult
      *
      * @param string $etag value.
      *
-     * @return none.
+     * @return void
      */
-    public function setETag($etag)
+    protected function setETag($etag)
     {
-        Validate::isString($etag, 'etag');
-        $this->_etag = $etag;
+        Validate::canCastAsString($etag, 'etag');
+        $this->etag = $etag;
     }
     
     /**
      * Gets blob contentMD5.
      *
-     * @return string.
+     * @return string
      */
     public function getContentMD5()
     {
-        return $this->_contentMD5;
+        return $this->contentMD5;
     }
 
     /**
@@ -150,21 +153,43 @@ class CreateBlobPagesResult
      *
      * @param string $contentMD5 value.
      *
-     * @return none.
+     * @return void
      */
-    public function setContentMD5($contentMD5)
+    protected function setContentMD5($contentMD5)
     {
-        $this->_contentMD5 = $contentMD5;
+        $this->contentMD5 = $contentMD5;
     }
-    
+
+    /**
+     * Gets the whether the contents of the request are successfully encrypted.
+     *
+     * @return boolean
+     */
+    public function getRequestServerEncrypted()
+    {
+        return $this->requestServerEncrypted;
+    }
+
+    /**
+     * Sets the request server encryption value.
+     *
+     * @param boolean $requestServerEncrypted
+     *
+     * @return void
+     */
+    public function setRequestServerEncrypted($requestServerEncrypted)
+    {
+        $this->requestServerEncrypted = $requestServerEncrypted;
+    }
+
     /**
      * Gets blob sequenceNumber.
      *
-     * @return int.
+     * @return int
      */
     public function getSequenceNumber()
     {
-        return $this->_sequenceNumber;
+        return $this->sequenceNumber;
     }
 
     /**
@@ -172,13 +197,11 @@ class CreateBlobPagesResult
      *
      * @param int $sequenceNumber value.
      *
-     * @return none.
+     * @return void
      */
-    public function setSequenceNumber($sequenceNumber)
+    protected function setSequenceNumber($sequenceNumber)
     {
         Validate::isInteger($sequenceNumber, 'sequenceNumber');
-        $this->_sequenceNumber = $sequenceNumber;
+        $this->sequenceNumber = $sequenceNumber;
     }
 }
-
-

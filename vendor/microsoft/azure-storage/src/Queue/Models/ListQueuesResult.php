@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,8 +23,10 @@
  */
  
 namespace MicrosoftAzure\Storage\Queue\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Resources;
-use MicrosoftAzure\Storage\Queue\Models\Queue;
+use MicrosoftAzure\Storage\Common\Models\MarkerContinuationToken;
+use MicrosoftAzure\Storage\Common\MarkerContinuationTokenTrait;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 
 /**
@@ -35,26 +37,30 @@ use MicrosoftAzure\Storage\Common\Internal\Utilities;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListQueuesResult
 {
+    use MarkerContinuationTokenTrait;
+
     private $_queues;
     private $_prefix;
     private $_marker;
-    private $_nextMarker;
     private $_maxResults;
     private $_accountName;
 
     /**
      * Creates ListQueuesResult object from parsed XML response.
      *
-     * @param array $parsedResponse XML response parsed into array.
-     * 
-     * @return MicrosoftAzure\Storage\Queue\Models\ListQueuesResult.
+     * @param array  $parsedResponse XML response parsed into array.
+     * @param string $location       Contains the location for the previous
+     *                               request.
+     *
+     * @internal
+     *
+     * @return ListQueuesResult
      */
-    public static function create($parsedResponse)
+    public static function create(array $parsedResponse, $location = '')
     {
         $result               = new ListQueuesResult();
         $serviceEndpoint      = Utilities::tryGetKeysChainValue(
@@ -62,25 +68,37 @@ class ListQueuesResult
             Resources::XTAG_ATTRIBUTES,
             Resources::XTAG_SERVICE_ENDPOINT
         );
-        $result->_accountName = Utilities::tryParseAccountNameFromUrl(
+        $result->setAccountName(Utilities::tryParseAccountNameFromUrl(
             $serviceEndpoint
-        );
-        $result->_prefix      = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_PREFIX
-        );
-        $result->_marker      = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_MARKER
-        );
-        $result->_nextMarker  = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_NEXT_MARKER
-        );
-        $result->_maxResults  = Utilities::tryGetValue(
-            $parsedResponse, Resources::QP_MAX_RESULTS
-        );
-        $result->_queues      = array();
+        ));
+        $result->setPrefix(Utilities::tryGetValue(
+            $parsedResponse,
+            Resources::QP_PREFIX
+        ));
+        $result->setMarker(Utilities::tryGetValue(
+            $parsedResponse,
+            Resources::QP_MARKER
+        ));
+
+        $nextMarker = Utilities::tryGetValue($parsedResponse, Resources::QP_NEXT_MARKER);
+
+        if ($nextMarker != null) {
+            $result->setContinuationToken(
+                new MarkerContinuationToken(
+                    $nextMarker,
+                    $location
+                )
+            );
+        }
+
+        $result->setMaxResults(Utilities::tryGetValue(
+            $parsedResponse,
+            Resources::QP_MAX_RESULTS
+        ));
+        $queues      = array();
         $rawQueues            = array();
         
-        if ( !empty($parsedResponse['Queues']) ) {
+        if (!empty($parsedResponse['Queues'])) {
             $rawQueues = Utilities::getArray($parsedResponse['Queues']['Queue']);
         }
         
@@ -88,16 +106,16 @@ class ListQueuesResult
             $queue    = new Queue($value['Name'], $serviceEndpoint . $value['Name']);
             $metadata = Utilities::tryGetValue($value, Resources::QP_METADATA);
             $queue->setMetadata(is_null($metadata) ? array() : $metadata);
-            $result->_queues[] = $queue;
+            $queues[] = $queue;
         }
-        
+        $result->setQueues($queues);
         return $result;
     }
 
     /**
      * Gets queues.
      *
-     * @return array.
+     * @return array
      */
     public function getQueues()
     {
@@ -108,10 +126,12 @@ class ListQueuesResult
      * Sets queues.
      *
      * @param array $queues list of queues
-     * 
-     * @return none.
+     *
+     * @internal
+     *
+     * @return void
      */
-    public function setQueues($queues)
+    protected function setQueues(array $queues)
     {
         $this->_queues = array();
         foreach ($queues as $queue) {
@@ -122,7 +142,7 @@ class ListQueuesResult
     /**
      * Gets prefix.
      *
-     * @return string.
+     * @return string
      */
     public function getPrefix()
     {
@@ -133,18 +153,20 @@ class ListQueuesResult
      * Sets prefix.
      *
      * @param string $prefix value.
-     * 
-     * @return none.
+     *
+     * @internal
+     *
+     * @return void
      */
-    public function setPrefix($prefix)
+    protected function setPrefix($prefix)
     {
         $this->_prefix = $prefix;
     }
 
     /**
      * Gets marker.
-     * 
-     * @return string.
+     *
+     * @return string
      */
     public function getMarker()
     {
@@ -155,18 +177,20 @@ class ListQueuesResult
      * Sets marker.
      *
      * @param string $marker value.
-     * 
-     * @return none.
+     *
+     * @internal
+     *
+     * @return void
      */
-    public function setMarker($marker)
+    protected function setMarker($marker)
     {
         $this->_marker = $marker;
     }
 
     /**
      * Gets max results.
-     * 
-     * @return string.
+     *
+     * @return string
      */
     public function getMaxResults()
     {
@@ -177,39 +201,19 @@ class ListQueuesResult
      * Sets max results.
      *
      * @param string $maxResults value.
-     * 
-     * @return none.
+     *
+     * @internal
+     *
+     * @return void
      */
-    public function setMaxResults($maxResults)
+    protected function setMaxResults($maxResults)
     {
         $this->_maxResults = $maxResults;
     }
 
     /**
-     * Gets next marker.
-     * 
-     * @return string.
-     */
-    public function getNextMarker()
-    {
-        return $this->_nextMarker;
-    }
-
-    /**
-     * Sets next marker.
-     *
-     * @param string $nextMarker value.
-     * 
-     * @return none.
-     */
-    public function setNextMarker($nextMarker)
-    {
-        $this->_nextMarker = $nextMarker;
-    }
-    
-    /**
      * Gets account name.
-     * 
+     *
      * @return string
      */
     public function getAccountName()
@@ -221,10 +225,12 @@ class ListQueuesResult
      * Sets account name.
      *
      * @param string $accountName value.
-     * 
-     * @return none
+     *
+     * @internal
+     *
+     * @return void
      */
-    public function setAccountName($accountName)
+    protected function setAccountName($accountName)
     {
         $this->_accountName = $accountName;
     }

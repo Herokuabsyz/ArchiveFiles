@@ -23,6 +23,7 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Common\Internal\Http;
+
 use MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext;
 
 /**
@@ -33,7 +34,6 @@ use MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class HttpCallContextTest extends \PHPUnit_Framework_TestCase
@@ -41,7 +41,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::__construct
      */
-    public function test__construct()
+    public function testConstruct()
     {
         // Test
         $context = new HttpCallContext();
@@ -61,7 +61,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getMethod
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::setMethod
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetMethod($context)
     {
@@ -78,7 +78,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getBody
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::setBody
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetBody($context)
     {
@@ -95,7 +95,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getPath
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::setPath
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetPath($context)
     {
@@ -112,7 +112,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getUri
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::setUri
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetUri($context)
     {
@@ -130,7 +130,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getHeaders
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::setHeaders
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::addHeader
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetHeaders($context)
     {
@@ -148,7 +148,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getQueryParameters
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::setQueryParameters
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::addQueryParameter
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetQueryParameters($context)
     {
@@ -166,7 +166,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getStatusCodes
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::setStatusCodes
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::addStatusCode
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetStatusCodes($context)
     {
@@ -183,7 +183,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getHeader
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::addHeader
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testAddHeader($context)
     {
@@ -202,7 +202,7 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::removeHeader
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::getHeaders
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::addHeader
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testRemoveHeader($context)
     {
@@ -220,9 +220,9 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Http\HttpCallContext::__toString
-     * @depends test__construct
+     * @depends testConstruct
      */
-    public function test__toString($context)
+    public function testToString($context)
     {
         // Setup
         $headers = array('h1' => 'v1', 'h2' => 'v2');
@@ -244,5 +244,3 @@ class HttpCallContextTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $actual);
     }
 }
-
-

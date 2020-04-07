@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
  
 namespace MicrosoftAzure\Storage\Table\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 
@@ -34,69 +35,53 @@ use MicrosoftAzure\Storage\Common\Internal\Resources;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class QueryTablesResult
 {
-    /**
-     * @var string 
-     */
-    private $_nextTableName;
-    
-    /**
-     * @var array
-     */
+    use TableContinuationTokenTrait;
+
     private $_tables;
     
     /**
      * Creates new QueryTablesResult object
-     * 
+     *
      * @param array $headers The HTTP response headers
      * @param array $entries The table entriess
-     * 
-     * @return \MicrosoftAzure\Storage\Table\Models\QueryTablesResult 
+     *
+     * @internal
+     *
+     * @return QueryTablesResult
      */
-    public static function create($headers, $entries)
+    public static function create(array $headers, array $entries)
     {
         $result  = new QueryTablesResult();
         $headers = array_change_key_case($headers);
         
-        $result->setNextTableName(
-            Utilities::tryGetValue(
-                $headers, Resources::X_MS_CONTINUATION_NEXTTABLENAME
-            )
-        );
         $result->setTables($entries);
+
+        $nextTableName = Utilities::tryGetValue(
+            $headers,
+            Resources::X_MS_CONTINUATION_NEXTTABLENAME
+        );
+
+        if ($nextTableName != null) {
+            $result->setContinuationToken(
+                new TableContinuationToken(
+                    $nextTableName,
+                    '',
+                    '',
+                    Utilities::getLocationFromHeaders($headers)
+                )
+            );
+        }
         
         return $result;
     }
     
     /**
-     * Gets nextTableName
-     * 
-     * @return string
-     */
-    public function getNextTableName()
-    {
-        return $this->_nextTableName;
-    }
-    
-    /**
-     * Sets nextTableName
-     * 
-     * @param string $nextTableName value
-     * 
-     * @return none
-     */
-    public function setNextTableName($nextTableName)
-    {
-        $this->_nextTableName = $nextTableName;
-    }
-    
-    /**
      * Gets tables
-     * 
+     *
      * @return array
      */
     public function getTables()
@@ -106,15 +91,13 @@ class QueryTablesResult
     
     /**
      * Sets tables
-     * 
+     *
      * @param array $tables value
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setTables($tables)
+    protected function setTables(array $tables)
     {
         $this->_tables = $tables;
     }
 }
-
-

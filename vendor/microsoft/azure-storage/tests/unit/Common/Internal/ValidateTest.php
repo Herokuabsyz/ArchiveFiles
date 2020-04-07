@@ -23,8 +23,9 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Common\Internal;
+
 use MicrosoftAzure\Storage\Common\Internal\Validate;
-use MicrosoftAzure\Storage\Common\Internal\InvalidArgumentTypeException;
+use MicrosoftAzure\Storage\Common\Exceptions\InvalidArgumentTypeException;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 
@@ -36,7 +37,6 @@ use MicrosoftAzure\Storage\Common\Internal\Utilities;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ValidateTest extends \PHPUnit_Framework_TestCase
@@ -61,22 +61,22 @@ class ValidateTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\Validate::isString
+     * @covers MicrosoftAzure\Storage\Common\Internal\Validate::canCastAsString
      */
     public function testIsStringWithString()
     {
-        Validate::isString('I\'m a string', 'string');
+        Validate::canCastAsString('I\'m a string', 'string');
 
         $this->assertTrue(true);
     }
 
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\Validate::isString
+     * @covers MicrosoftAzure\Storage\Common\Internal\Validate::canCastAsString
      */
     public function testIsStringWithNonString()
     {
         $this->setExpectedException(get_class(new InvalidArgumentTypeException('')));
-        Validate::isString(new \DateTime(), 'string');
+        Validate::canCastAsString(new \DateTime(), 'string');
     }
 
     /**
@@ -519,7 +519,8 @@ class ValidateTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Validate::isDateString
      */
-    public function testIsDateStringValid(){
+    public function testIsDateStringValid()
+    {
 
         // Setup
         $value = '2013-11-25';
@@ -534,7 +535,8 @@ class ValidateTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Validate::isDateString
      */
-    public function testIsDateStringNotValid(){
+    public function testIsDateStringNotValid()
+    {
 
         // Setup
         $this->setExpectedException('\InvalidArgumentException');
@@ -546,4 +548,3 @@ class ValidateTest extends \PHPUnit_Framework_TestCase
         // Assert
     }
 }
-

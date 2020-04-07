@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,8 +23,8 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
-use MicrosoftAzure\Storage\Blob\Models\BlobProperties;
-use MicrosoftAzure\Storage\Common\Internal\Utilities;
+
+use Psr\Http\Message\StreamInterface;
 
 /**
  * Holds result of GetBlob API.
@@ -34,40 +34,33 @@ use MicrosoftAzure\Storage\Common\Internal\Utilities;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetBlobResult
 {
-    /**
-     * @var BlobProperties
-     */
-    private $_properties;
-    
-    /**
-     * @var array
-     */
-    private $_metadata;
-    
-    /**
-     * @var resource
-     */
-    private $_contentStream;
+    private $properties;
+    private $metadata;
+    private $contentStream;
     
     /**
      * Creates GetBlobResult from getBlob call.
-     * 
-     * @param array  $headers  The HTTP response headers.
-     * @param string $body     The response body.
-     * @param array  $metadata The blob metadata.
-     * 
+     *
+     * @param array           $headers  The HTTP response headers.
+     * @param StreamInterface $body     The response body.
+     * @param array           $metadata The blob metadata.
+     *
+     * @internal
+     *
      * @return GetBlobResult
      */
-    public static function create($headers, $body, $metadata)
-    {
+    public static function create(
+        array $headers,
+        StreamInterface $body,
+        array $metadata
+    ) {
         $result = new GetBlobResult();
-        $result->setContentStream(Utilities::stringToStream($body));
-        $result->setProperties(BlobProperties::create($headers));
+        $result->setContentStream($body->detach());
+        $result->setProperties(BlobProperties::createFromHttpHeaders($headers));
         $result->setMetadata(is_null($metadata) ? array() : $metadata);
         
         return $result;
@@ -80,19 +73,19 @@ class GetBlobResult
      */
     public function getMetadata()
     {
-        return $this->_metadata;
+        return $this->metadata;
     }
 
     /**
      * Sets blob metadata.
      *
-     * @param string $metadata value.
-     * 
-     * @return none
+     * @param array $metadata value.
+     *
+     * @return void
      */
-    public function setMetadata($metadata)
+    protected function setMetadata(array $metadata)
     {
-        $this->_metadata = $metadata;
+        $this->metadata = $metadata;
     }
     
     /**
@@ -102,42 +95,40 @@ class GetBlobResult
      */
     public function getProperties()
     {
-        return $this->_properties;
+        return $this->properties;
     }
 
     /**
      * Sets blob properties.
      *
      * @param BlobProperties $properties value.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setProperties($properties)
+    protected function setProperties(BlobProperties $properties)
     {
-        $this->_properties = $properties;
+        $this->properties = $properties;
     }
     
     /**
      * Gets blob contentStream.
      *
-     * @return resource
+     * @return \resource
      */
     public function getContentStream()
     {
-        return $this->_contentStream;
+        return $this->contentStream;
     }
 
     /**
      * Sets blob contentStream.
      *
-     * @param resource $contentStream The stream handle.
-     * 
-     * @return none
+     * @param \resource $contentStream The stream handle.
+     *
+     * @return void
      */
-    public function setContentStream($contentStream)
+    protected function setContentStream($contentStream)
     {
-        $this->_contentStream = $contentStream;
+        $this->contentStream = $contentStream;
     }
 }
-
-

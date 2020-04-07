@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,6 +22,7 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Blob\Models\BreakLeaseResult;
 
 /**
@@ -32,13 +33,14 @@ use MicrosoftAzure\Storage\Blob\Models\BreakLeaseResult;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class BreakLeaseResultTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @covers MicrosoftAzure\Storage\Blob\Models\BreakLeaseResult::create
+     * @covers MicrosoftAzure\Storage\Blob\Models\BreakLeaseResult::setLeaseTime
+     * @covers MicrosoftAzure\Storage\Blob\Models\BreakLeaseResult::getLeaseTime
      */
     public function testCreate()
     {
@@ -48,24 +50,6 @@ class BreakLeaseResultTest extends \PHPUnit_Framework_TestCase
         
         // Test
         $result = BreakLeaseResult::create($headers);
-        
-        // Assert
-        $this->assertEquals($expected, $result->getLeaseTime());
-    }
-    
-    /**
-     * @covers MicrosoftAzure\Storage\Blob\Models\BreakLeaseResult::setLeaseTime
-     * @covers MicrosoftAzure\Storage\Blob\Models\BreakLeaseResult::getLeaseTime
-     */
-    public function testSetLeaseTime()
-    {
-        // Setup
-        $expected = '0x8CAFB82EFF70C46';
-        $result = new BreakLeaseResult();
-        $result->setLeaseTime($expected);
-        
-        // Test
-        $result->setLeaseTime($expected);
         
         // Assert
         $this->assertEquals($expected, $result->getLeaseTime());

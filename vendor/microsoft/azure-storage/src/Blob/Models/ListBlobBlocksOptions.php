@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Validate;
 
 /**
@@ -33,37 +34,13 @@ use MicrosoftAzure\Storage\Common\Internal\Validate;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListBlobBlocksOptions extends BlobServiceOptions
 {
-    /**
-     * @var string
-     */
-    private $_leaseId;
-    
-    /**
-     * @var string
-     */
     private $_snapshot;
-    
-    /**
-     * @var boolean
-     */
     private $_includeUncommittedBlobs;
-    
-    /**
-     * @var boolean
-     */
     private $_includeCommittedBlobs;
-    
-    /**
-     * Holds result of list type. You can access it by this order:
-     * $_listType[$this->_includeUncommittedBlobs][$this->_includeCommittedBlobs]
-     * 
-     * @var array
-     */
     private static $_listType;
     
     /**
@@ -71,41 +48,20 @@ class ListBlobBlocksOptions extends BlobServiceOptions
      */
     public function __construct()
     {
+        parent::__construct();
         self::$_listType[true][true]   = 'all';
         self::$_listType[true][false]  = 'uncommitted';
         self::$_listType[false][true]  = 'committed';
         self::$_listType[false][false] = 'all';
         
         $this->_includeUncommittedBlobs = false;
-        $this->_includeCommittedBlobs   = false;    
-    }
-    
-    /**
-     * Gets lease Id for the blob
-     * 
-     * @return string
-     */
-    public function getLeaseId()
-    {
-        return $this->_leaseId;
-    }
-    
-    /**
-     * Sets lease Id for the blob
-     * 
-     * @param string $leaseId the blob lease id.
-     * 
-     * @return none
-     */
-    public function setLeaseId($leaseId)
-    {
-        $this->_leaseId = $leaseId;
+        $this->_includeCommittedBlobs   = false;
     }
     
     /**
      * Gets blob snapshot.
      *
-     * @return string.
+     * @return string
      */
     public function getSnapshot()
     {
@@ -116,8 +72,8 @@ class ListBlobBlocksOptions extends BlobServiceOptions
      * Sets blob snapshot.
      *
      * @param string $snapshot value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setSnapshot($snapshot)
     {
@@ -128,8 +84,8 @@ class ListBlobBlocksOptions extends BlobServiceOptions
      * Sets the include uncommittedBlobs flag.
      *
      * @param bool $includeUncommittedBlobs value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setIncludeUncommittedBlobs($includeUncommittedBlobs)
     {
@@ -139,8 +95,8 @@ class ListBlobBlocksOptions extends BlobServiceOptions
     
     /**
      * Indicates if uncommittedBlobs is included or not.
-     * 
-     * @return boolean.
+     *
+     * @return boolean
      */
     public function getIncludeUncommittedBlobs()
     {
@@ -151,8 +107,8 @@ class ListBlobBlocksOptions extends BlobServiceOptions
      * Sets the include committedBlobs flag.
      *
      * @param bool $includeCommittedBlobs value.
-     * 
-     * @return none.
+     *
+     * @return void
      */
     public function setIncludeCommittedBlobs($includeCommittedBlobs)
     {
@@ -162,8 +118,8 @@ class ListBlobBlocksOptions extends BlobServiceOptions
     
     /**
      * Indicates if committedBlobs is included or not.
-     * 
-     * @return boolean.
+     *
+     * @return boolean
      */
     public function getIncludeCommittedBlobs()
     {
@@ -172,7 +128,7 @@ class ListBlobBlocksOptions extends BlobServiceOptions
     
     /**
      * Gets block list type.
-     * 
+     *
      * @return string
      */
     public function getBlockListType()
@@ -183,5 +139,3 @@ class ListBlobBlocksOptions extends BlobServiceOptions
         return self::$_listType[$includeUncommitted][$includeCommitted];
     }
 }
-
-

@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
  
 namespace MicrosoftAzure\Storage\Table\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 
@@ -34,28 +35,27 @@ use MicrosoftAzure\Storage\Common\Internal\Resources;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class UpdateEntityResult
 {
-    /**
-     * @var string
-     */
     private $_etag;
     
     /**
      * Creates UpdateEntityResult from HTTP response headers.
-     * 
+     *
      * @param array $headers The HTTP response headers.
-     * 
-     * @return \MicrosoftAzure\Storage\Table\Models\UpdateEntityResult 
+     *
+     * @internal
+     *
+     * @return UpdateEntityResult
      */
-    public static function create($headers)
+    public static function create(array $headers)
     {
         $result = new UpdateEntityResult();
-        $clean  = array_change_key_case($headers);
-        $result->setETag($clean[Resources::ETAG]);
+        $result->setETag(
+            Utilities::tryGetValueInsensitive(Resources::ETAG, $headers)
+        );
         
         return $result;
     }
@@ -75,12 +75,10 @@ class UpdateEntityResult
      *
      * @param string $etag The entity ETag.
      *
-     * @return none
+     * @return void
      */
-    public function setETag($etag)
+    protected function setETag($etag)
     {
         $this->_etag = $etag;
     }
 }
-
-

@@ -23,13 +23,14 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Common\Internal;
+
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Tests\Framework\VirtualFileSystem;
 use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
 use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
-
+use GuzzleHttp\Psr7;
 
 /**
  * Unit tests for class Utilities
@@ -39,7 +40,6 @@ use MicrosoftAzure\Storage\Common\Internal\Serialization\XmlSerializer;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class UtilitiesTest extends \PHPUnit_Framework_TestCase
@@ -197,7 +197,7 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     public function testGetArrayWithEmptyValue()
     {
         // Setup
-        $empty = Resources::EMPTY_STRING;
+        $empty = array();
         $expected = array();
 
         // Test
@@ -217,12 +217,11 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
         $properties = ServiceProperties::create($propertiesSample);
         $xmlSerializer = new XmlSerializer();
         $xml = $properties->toXml($xmlSerializer);
-        $expected = $properties->toArray();
 
         // Test
         $actual = Utilities::unserialize($xml);
 
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals($propertiesSample, $actual);
     }
 
     /**
@@ -234,32 +233,32 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
         // Setup
         $propertiesSample = TestResources::getServicePropertiesSample();
         $properties = ServiceProperties::create($propertiesSample);
+
         $expected  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         $expected .= '<StorageServiceProperties><Logging><Version>1.0</Version><Delete>true</Delete>';
         $expected .= '<Read>false</Read><Write>true</Write><RetentionPolicy><Enabled>true</Enabled>';
         $expected .= '<Days>20</Days></RetentionPolicy></Logging><HourMetrics><Version>1.0</Version>';
         $expected .= '<Enabled>true</Enabled><IncludeAPIs>false</IncludeAPIs><RetentionPolicy>';
-        $expected .= '<Enabled>true</Enabled><Days>20</Days></RetentionPolicy></HourMetrics></StorageServiceProperties>';
+        $expected .= '<Enabled>true</Enabled><Days>20</Days></RetentionPolicy></HourMetrics>';
+        $expected .= '<MinuteMetrics><Version>1.0</Version><Enabled>true</Enabled>';
+        $expected .= '<IncludeAPIs>false</IncludeAPIs><RetentionPolicy><Enabled>true</Enabled>';
+        $expected .= '<Days>20</Days></RetentionPolicy></MinuteMetrics>';
+        $expected .= '<Cors><CorsRule><AllowedOrigins>http://www.microsoft.com,http://www.bing.com</AllowedOrigins>';
+        $expected .= '<AllowedMethods>GET,PUT</AllowedMethods>';
+        $expected .= '<AllowedHeaders>x-ms-meta-customheader0,x-ms-meta-target0*</AllowedHeaders>';
+        $expected .= '<ExposedHeaders>x-ms-meta-customheader0,x-ms-meta-data0*</ExposedHeaders>';
+        $expected .= '<MaxAgeInSeconds>500</MaxAgeInSeconds>';
+        $expected .= '</CorsRule><CorsRule><AllowedOrigins>http://www.azure.com,http://www.office.com</AllowedOrigins>';
+        $expected .= '<AllowedMethods>POST,HEAD</AllowedMethods><AllowedHeaders>';
+        $expected .= 'x-ms-meta-customheader1,x-ms-meta-target1*</AllowedHeaders>';
+        $expected .= '<ExposedHeaders>x-ms-meta-customheader1,x-ms-meta-data1*';
+        $expected .= '</ExposedHeaders><MaxAgeInSeconds>350</MaxAgeInSeconds>';
+        $expected .= '</CorsRule></Cors></StorageServiceProperties>';
+
         $array = $properties->toArray();
 
         // Test
-        $actual = Utilities::serialize($array, ServiceProperties::$xmlRootName);
-
-        $this->assertEquals($expected, $actual);
-    }
-
-    /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::serialize
-     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::_arr2xml
-     */
-    public function testSerializeNoArray()
-    {
-        // Setup
-        $expected = false;
-        $array = 'not an array';
-
-        // Test
-        $actual = Utilities::serialize($array, ServiceProperties::$xmlRootName);
+        $actual = Utilities::serialize($array, "StorageServiceProperties");
 
         $this->assertEquals($expected, $actual);
     }
@@ -292,16 +291,23 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
      */
     public function testToBoolean()
     {
-        // Setup
-        $value = 'true';
-        $expected = true;
+        $this->assertTrue(is_bool(Utilities::toBoolean('true')));
+        $this->assertEquals(true, Utilities::toBoolean('true'));
 
-        // Test
-        $actual = Utilities::toBoolean($value);
+        $this->assertTrue(is_bool(Utilities::toBoolean('false')));
+        $this->assertEquals(false, Utilities::toBoolean('false'));
 
-        // Assert
-        $this->assertTrue(is_bool($actual));
-        $this->assertEquals($expected, $actual);
+        $this->assertTrue(is_bool(Utilities::toBoolean(null)));
+        $this->assertEquals(false, Utilities::toBoolean(null));
+
+        $this->assertTrue(is_bool(Utilities::toBoolean('true', true)));
+        $this->assertEquals(true, Utilities::toBoolean('true', true));
+
+        $this->assertTrue(is_bool(Utilities::toBoolean('false', true)));
+        $this->assertEquals(false, Utilities::toBoolean('false', true));
+
+        $this->assertTrue(is_null(Utilities::toBoolean(null, true)));
+        $this->assertEquals(null, Utilities::toBoolean(null, true));
     }
 
     /**
@@ -326,10 +332,10 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     public function testIsoDate()
     {
         // Test
-        $date = Utilities::isoDate();
+        $date = Utilities::isoDate(new \DateTimeImmutable('2016-02-03', new \DateTimeZone('America/Chicago')));
 
         // Assert
-        $this->assertNotNull($date);
+        $this->assertSame('2016-02-03T06:00:00Z', $date);
     }
 
     /**
@@ -573,7 +579,8 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::generateCryptoKey
      */
-    public function testGenerateCryptoKey(){
+    public function testGenerateCryptoKey()
+    {
 
         // Setup
         $length = 32;
@@ -586,80 +593,10 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::ctrCrypt
-     */
-    public function testCtrCrypt(){
-    
-        // Setup
-        $data = 'Test data more than 16 bytes';
-        $key = Utilities::generateCryptoKey(32);
-        $efectiveInitializationVector = Utilities::generateCryptoKey(8);
-        $initializationVector = str_pad($efectiveInitializationVector, 16, chr(255));
-    
-        // Test
-        $ecnrypted = Utilities::ctrCrypt($data, $key, $initializationVector);
-        $decrypted = Utilities::ctrCrypt($ecnrypted, $key, $initializationVector);
-    
-        // Assert
-        $this->assertEquals($data, $decrypted);
-    }
-    
-    /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::ctrCrypt
-     */
-    public function testCtrCryptFixedKeys(){
-    
-        // Setup
-        $data = 'Test data more than 16 bytes';
-        $key = base64_decode('QNhZJajWRH3fmCKDJtMluj6PUBvkADwJ7dX4KQGI99o=');
-        $efectiveInitializationVector = base64_decode('k3AmLEGFubw=');
-        $expected = base64_decode('j3+9MFQVctoWlUvqbn/xReun0XnWqwJ3tpvbpw==');
-        
-        $initializationVector = str_pad($efectiveInitializationVector, 16, chr(255));
-        
-        // Test
-        $actual = Utilities::ctrCrypt($data, $key, $initializationVector);
-    
-        // Assert
-        $this->assertEquals($actual, $expected);
-    }
-    
-    /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::ctrCrypt
-     */
-    public function testCtrCryptInvalidKeyLength(){
-    
-        // Setup
-        $data = 'Test data more than 16 bytes';
-        $key = '12345';
-        $efectiveInitializationVector = Utilities::generateCryptoKey(8);
-        $this->setExpectedException(get_class(new \InvalidArgumentException('')));
-        
-        $initializationVector = str_pad($efectiveInitializationVector, 16, chr(255));
-        
-        // Test
-        $actual = Utilities::ctrCrypt($data, $key, $initializationVector);
-    }
-    
-    /**
-     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::ctrCrypt
-     */
-    public function testCtrCryptInvalidInitializationVectorLength(){
-    
-        // Setup
-        $data = 'Test data more than 16 bytes';
-        $key = Utilities::generateCryptoKey(32);
-        $initializationVector = '1234';
-        $this->setExpectedException(get_class(new \InvalidArgumentException('')));
-        
-        // Test
-        $actual = Utilities::ctrCrypt($data, $key, $initializationVector);
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::base256ToDec
      */
-    public function testBase256ToDecF(){
+    public function testBase256ToDecF()
+    {
     
         // Setup
         $data = pack('C*', 255, 255, 255, 255);
@@ -675,7 +612,8 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::base256ToDec
      */
-    public function testBase256ToDec0(){
+    public function testBase256ToDec0()
+    {
     
         // Setup
         $data = pack('C*', 0, 0, 0, 0);
@@ -692,7 +630,8 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::base256ToDec
      */
-    public function testBase256ToDec(){
+    public function testBase256ToDec()
+    {
     
         // Setup
         $data = pack('C*', 34, 78, 27, 55);
@@ -708,7 +647,8 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::base256ToDec
      */
-    public function testBase256ToDecBig(){
+    public function testBase256ToDecBig()
+    {
     
         // Setup
         $data = pack('C*', 81, 35, 29, 39, 236, 104, 105, 144); //51 23 1D 27 EC 68 69 90
@@ -719,5 +659,92 @@ class UtilitiesTest extends \PHPUnit_Framework_TestCase
     
         // Assert
         $this->assertEquals($expected, $actual);
+    }
+
+    /**
+     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::isStreamLargerThanSizeOrNotSeekable
+     */
+    public function testIsStreamLargerThanSizeOrNotSeekable()
+    {
+        //prepare a file
+        $cwd = getcwd();
+        $uuid = uniqid('test-file-', true);
+        $path = $cwd.DIRECTORY_SEPARATOR.$uuid.'.txt';
+        $resource = fopen($path, 'w+');
+        $count = 64 / 4;
+        for ($index = 0; $index < $count; ++$index) {
+            fwrite($resource, openssl_random_pseudo_bytes(4194304));
+        }
+        rewind($resource);
+        $stream = Psr7\stream_for($resource);
+        $result_0 = Utilities::isStreamLargerThanSizeOrNotSeekable(
+            $stream,
+            4194304 * 16 - 1
+        );
+        $result_1 = Utilities::isStreamLargerThanSizeOrNotSeekable(
+            $stream,
+            4194304 * 16
+        );
+        //prepare a string
+        $count = 64 / 4;
+        $testStr = openssl_random_pseudo_bytes(4194304 * $count);
+        $stream = Psr7\stream_for($testStr);
+        $result_2 = Utilities::isStreamLargerThanSizeOrNotSeekable(
+            $stream,
+            4194304 * 16 - 1
+        );
+        $result_3 = Utilities::isStreamLargerThanSizeOrNotSeekable(
+            $stream,
+            4194304 * 16
+        );
+
+        $this->assertFalse($result_1);
+        $this->assertFalse($result_3);
+        $this->assertTrue($result_0);
+        $this->assertTrue($result_2);
+        if (is_resource($resource)) {
+            fclose($resource);
+        }
+        // Delete file after assertion.
+        unlink($path);
+    }
+
+    /**
+     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::getMetadataArray
+     */
+    public function testGetMetadataArray()
+    {
+        // Setup
+        $expected = array('key1' => 'value1', 'myname' => 'azure', 'mycompany' => 'microsoft_');
+        $metadataHeaders = array();
+        foreach ($expected as $key => $value) {
+            $metadataHeaders[Resources::X_MS_META_HEADER_PREFIX . strtolower($key)] = $value;
+        }
+
+        // Test
+        $actual = Utilities::getMetadataArray($metadataHeaders);
+
+        // Assert
+        $this->assertEquals($expected, $actual);
+    }
+
+    /**
+     * @covers MicrosoftAzure\Storage\Common\Internal\Utilities::getMetadataArray
+     */
+    public function testGetMetadataArrayWithMsHeaders()
+    {
+        // Setup
+        $key = 'name';
+        $validMetadataKey = Resources::X_MS_META_HEADER_PREFIX . $key;
+        $value = 'correct';
+        $metadataHeaders = array('x-ms-key1' => 'value1', 'myname' => 'x-ms-date',
+                          $validMetadataKey => $value, 'mycompany' => 'microsoft_');
+
+        // Test
+        $actual = Utilities::getMetadataArray($metadataHeaders);
+
+        // Assert
+        $this->assertCount(1, $actual);
+        $this->assertEquals($value, $actual[$key]);
     }
 }

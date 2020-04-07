@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -32,28 +32,20 @@ namespace MicrosoftAzure\Storage\Table\Models\Filters;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class UnaryFilter extends Filter
 {
-    /**
-     * @var string 
-     */
     private $_operator;
-    
-    /**
-     * @var Filter
-     */
     private $_operand;
     
     /**
      * Constructor.
-     * 
+     *
      * @param string $operator The operator.
      * @param Filter $operand  The operand filter.
      */
-    public function __construct($operator, $operand)
+    public function __construct($operator, Filter $operand = null)
     {
         $this->_operand  = $operand;
         $this->_operator = $operator;
@@ -61,8 +53,8 @@ class UnaryFilter extends Filter
     
     /**
      * Gets operator
-     * 
-     * @return string 
+     *
+     * @return string
      */
     public function getOperator()
     {
@@ -71,13 +63,11 @@ class UnaryFilter extends Filter
 
     /**
      * Gets operand
-     * 
-     * @return Filter 
+     *
+     * @return Filter
      */
     public function getOperand()
     {
         return $this->_operand;
     }
 }
-
-

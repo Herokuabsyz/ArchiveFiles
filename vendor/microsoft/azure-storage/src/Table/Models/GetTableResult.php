@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,7 +23,6 @@
  */
  
 namespace MicrosoftAzure\Storage\Table\Models;
-use MicrosoftAzure\Storage\Common\Internal\Utilities;
 
 /**
  * Holds result of getTable API.
@@ -33,29 +32,26 @@ use MicrosoftAzure\Storage\Common\Internal\Utilities;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetTableResult
 {
-    /**
-     * @var string
-     */
     private $_name;
     
     /**
      * Creates GetTableResult from HTTP response body.
-     * 
-     * @param string           $body           The HTTP response body.
-     * @param AtomReaderWriter $atomSerializer The Atom reader and writer.
-     * 
-     * @return \MicrosoftAzure\Storage\Table\Models\GetTableResult
+     *
+     * @param string             $body            The HTTP response body.
+     * @param IODataReaderWriter $odataSerializer The OData reader and writer.
+     *
+     * @internal
+     *
+     * @return GetTableResult
      */
-    public static function create($body, $atomSerializer)
+    public static function create($body, $odataSerializer)
     {
         $result = new GetTableResult();
-        
-        $name = $atomSerializer->parseTable($body);
+        $name = $odataSerializer->parseTable($body);
         $result->setName($name);
         
         return $result;
@@ -63,7 +59,7 @@ class GetTableResult
     
     /**
      * Gets the name.
-     * 
+     *
      * @return string
      */
     public function getName()
@@ -73,15 +69,13 @@ class GetTableResult
     
     /**
      * Sets the name.
-     * 
+     *
      * @param string $name The table name.
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setName($name)
+    protected function setName($name)
     {
         $this->_name = $name;
     }
 }
-
-

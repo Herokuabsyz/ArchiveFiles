@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,10 +23,11 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Validate;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
-use MicrosoftAzure\Storage\Blob\Models\PageRange;
+use MicrosoftAzure\Storage\Common\Models\Range;
 
 /**
  * Holds result of calling listPageBlobRanges wrapper
@@ -36,40 +37,26 @@ use MicrosoftAzure\Storage\Blob\Models\PageRange;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListPageBlobRangesResult
 {
-    /**
-     * @var \DateTime
-     */
     private $_lastModified;
-    
-    /**
-     * @var string
-     */
     private $_etag;
-    
-    /**
-     * @var integer
-     */
     private $_contentLength;
-    
-    /**
-     * @var array
-     */
     private $_pageRanges;
     
     /**
      * Creates BlobProperties object from $parsed response in array representation
-     * 
+     *
      * @param array $headers HTTP response headers
      * @param array $parsed  parsed response in array format.
-     * 
+     *
+     * @internal
+     *
      * @return ListPageBlobRangesResult
      */
-    public static function create($headers, $parsed)
+    public static function create(array $headers, array $parsed = null)
     {
         $result  = new ListPageBlobRangesResult();
         $headers = array_change_key_case($headers);
@@ -77,20 +64,21 @@ class ListPageBlobRangesResult
         $date          = $headers[Resources::LAST_MODIFIED];
         $date          = Utilities::rfc1123ToDateTime($date);
         $blobLength    = intval($headers[Resources::X_MS_BLOB_CONTENT_LENGTH]);
-        $rawPageRanges = array();
+        $rawRanges = array();
         
-        if (!empty($parsed['PageRange'])) {
+        if (!empty($parsed[Resources::XTAG_PAGE_RANGE])) {
             $parsed        = array_change_key_case($parsed);
-            $rawPageRanges = Utilities::getArray($parsed['pagerange']);
+            $rawRanges = Utilities::getArray($parsed[strtolower(RESOURCES::XTAG_PAGE_RANGE)]);
         }
         
-        $result->_pageRanges = array();
-        foreach ($rawPageRanges as $value) {
-            $result->_pageRanges[] = new PageRange(
-                intval($value['Start']), intval($value['End'])
+        $pageRanges = array();
+        foreach ($rawRanges as $value) {
+            $pageRanges[] = new Range(
+                intval($value[Resources::XTAG_RANGE_START]),
+                intval($value[Resources::XTAG_RANGE_END])
             );
         }
-        
+        $result->setRanges($pageRanges);
         $result->setContentLength($blobLength);
         $result->setETag($headers[Resources::ETAG]);
         $result->setLastModified($date);
@@ -101,7 +89,7 @@ class ListPageBlobRangesResult
     /**
      * Gets blob lastModified.
      *
-     * @return \DateTime.
+     * @return \DateTime
      */
     public function getLastModified()
     {
@@ -113,9 +101,9 @@ class ListPageBlobRangesResult
      *
      * @param \DateTime $lastModified value.
      *
-     * @return none.
+     * @return void
      */
-    public function setLastModified($lastModified)
+    protected function setLastModified(\DateTime $lastModified)
     {
         Validate::isDate($lastModified);
         $this->_lastModified = $lastModified;
@@ -124,7 +112,7 @@ class ListPageBlobRangesResult
     /**
      * Gets blob etag.
      *
-     * @return string.
+     * @return string
      */
     public function getETag()
     {
@@ -136,18 +124,18 @@ class ListPageBlobRangesResult
      *
      * @param string $etag value.
      *
-     * @return none.
+     * @return void
      */
-    public function setETag($etag)
+    protected function setETag($etag)
     {
-        Validate::isString($etag, 'etag');
+        Validate::canCastAsString($etag, 'etag');
         $this->_etag = $etag;
     }
     
     /**
      * Gets blob contentLength.
      *
-     * @return integer.
+     * @return integer
      */
     public function getContentLength()
     {
@@ -159,9 +147,9 @@ class ListPageBlobRangesResult
      *
      * @param integer $contentLength value.
      *
-     * @return none.
+     * @return void
      */
-    public function setContentLength($contentLength)
+    protected function setContentLength($contentLength)
     {
         Validate::isInteger($contentLength, 'contentLength');
         $this->_contentLength = $contentLength;
@@ -169,22 +157,22 @@ class ListPageBlobRangesResult
     
     /**
      * Gets page ranges
-     * 
+     *
      * @return array
      */
-    public function getPageRanges()
+    public function getRanges()
     {
         return $this->_pageRanges;
     }
     
     /**
      * Sets page ranges
-     * 
+     *
      * @param array $pageRanges page ranges to set
-     * 
-     * @return none
+     *
+     * @return void
      */
-    public function setPageRanges($pageRanges)
+    protected function setRanges(array $pageRanges)
     {
         $this->_pageRanges = array();
         foreach ($pageRanges as $pageRange) {
@@ -192,5 +180,3 @@ class ListPageBlobRangesResult
         }
     }
 }
-
-

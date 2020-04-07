@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,7 +23,10 @@
  */
  
 namespace MicrosoftAzure\Storage\Queue\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Validate;
+use MicrosoftAzure\Storage\Common\Internal\Utilities;
+use MicrosoftAzure\Storage\Common\Internal\Resources;
 
 /**
  * Holds results of updateMessage wrapper.
@@ -33,31 +36,43 @@ use MicrosoftAzure\Storage\Common\Internal\Validate;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class UpdateMessageResult
 {
-    /**
-     * The value of PopReceipt is opaque to the client and its only purpose is to 
-     * ensure that a message may be deleted with the delete message operation.
-     * 
-     * @var string
-     */
     private $_popReceipt;
-    
-    /**
-     * A UTC date/time value that represents when the message will be visible on the 
-     * queue.
-     * 
-     * @var \DateTime
-     */
     private $_timeNextVisible;
-    
+
+    /**
+     * Creates an instance with the given response headers.
+     *
+     * @param  array  $headers The response headers used to create the instance.
+     *
+     * @internal
+     *
+     * @return UpdateMessageResult
+     */
+    public static function create(array $headers)
+    {
+        $result = new UpdateMessageResult();
+        $result->setPopReceipt(Utilities::tryGetValueInsensitive(
+            Resources::X_MS_POPRECEIPT,
+            $headers
+        ));
+        $timeNextVisible = Utilities::tryGetValueInsensitive(
+            Resources::X_MS_TIME_NEXT_VISIBLE,
+            $headers
+        );
+        $date   = Utilities::rfc1123ToDateTime($timeNextVisible);
+        $result->setTimeNextVisible($date);
+
+        return $result;
+    }
+
     /**
      * Gets timeNextVisible field.
-     * 
-     * @return \DateTime.
+     *
+     * @return \DateTime
      */
     public function getTimeNextVisible()
     {
@@ -66,13 +81,15 @@ class UpdateMessageResult
     
     /**
      * Sets timeNextVisible field.
-     * 
-     * @param \DateTime $timeNextVisible A UTC date/time value that represents when 
+     *
+     * @param \DateTime $timeNextVisible A UTC date/time value that represents when
      * the message will be visible on the queue.
-     * 
-     * @return none.
+     *
+     * @internal
+     *
+     * @return void
      */
-    public function setTimeNextVisible($timeNextVisible)
+    protected function setTimeNextVisible(\DateTime $timeNextVisible)
     {
         Validate::isDate($timeNextVisible);
         
@@ -81,8 +98,8 @@ class UpdateMessageResult
     
     /**
      * Gets popReceipt field.
-     * 
-     * @return string.
+     *
+     * @return string
      */
     public function getPopReceipt()
     {
@@ -91,16 +108,16 @@ class UpdateMessageResult
     
     /**
      * Sets popReceipt field.
-     * 
+     *
      * @param string $popReceipt The pop receipt of the queue message.
-     * 
-     * @return none.
+     *
+     * @internal
+     *
+     * @return void
      */
-    public function setPopReceipt($popReceipt)
+    protected function setPopReceipt($popReceipt)
     {
-        Validate::isString($popReceipt, 'popReceipt');
+        Validate::canCastAsString($popReceipt, 'popReceipt');
         $this->_popReceipt = $popReceipt;
     }
 }
-
-

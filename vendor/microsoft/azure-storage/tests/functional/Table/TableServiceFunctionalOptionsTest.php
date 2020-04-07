@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -111,12 +111,12 @@ class TableServiceFunctionalOptionsTest extends \PHPUnit_Framework_TestCase
 
         $sp = new ServiceProperties();
         $this->assertNull($sp->getLogging(), 'Default ServiceProperties->getLogging should not be null');
-        $this->assertNull($sp->getMetrics(), 'Default ServiceProperties->getMetrics should not be null');
+        $this->assertNull($sp->getHourMetrics(), 'Default ServiceProperties->getHourMetrics should not be null');
 
         $sp->setLogging($l);
-        $sp->setMetrics($m);
+        $sp->setHourMetrics($m);
         $this->assertEquals($sp->getLogging(), $l, 'Set ServiceProperties->getLogging');
-        $this->assertEquals($sp->getMetrics(), $m, 'Set ServiceProperties->getMetrics');
+        $this->assertEquals($sp->getHourMetrics(), $m, 'Set ServiceProperties->getHourMetrics');
     }
 
     public function testCheckQueryTablesOptions()
@@ -125,7 +125,7 @@ class TableServiceFunctionalOptionsTest extends \PHPUnit_Framework_TestCase
         $nextTableName = 'foo';
         $filter = new Filter();
 
-        $this->assertNull($options->getNextTableName(), 'Default QueryTablesOptions->getNextTableName');
+        $this->assertEquals('', $options->getNextTableName(), 'Default QueryTablesOptions->getNextTableName');
         $this->assertNotNull($options->getQuery(), 'Default QueryTablesOptions->getQuery');
         $options->setNextTableName($nextTableName);
         $options->setFilter($filter);
@@ -154,8 +154,8 @@ class TableServiceFunctionalOptionsTest extends \PHPUnit_Framework_TestCase
         $nextPartitionKey = 'aaa';
         $nextRowKey = 'bbb';
 
-        $this->assertNull($options->getNextPartitionKey(), 'Default QueryEntitiesOptions->getNextPartitionKey');
-        $this->assertNull($options->getNextRowKey(), 'Default QueryEntitiesOptions->getNextRowKey');
+        $this->assertEquals('', $options->getNextPartitionKey(), 'Default QueryEntitiesOptions->getNextPartitionKey');
+        $this->assertEquals('', $options->getNextRowKey(), 'Default QueryEntitiesOptions->getNextRowKey');
         $this->assertNotNull($options->getQuery(), 'Default QueryEntitiesOptions->getQuery');
         $options->setNextPartitionKey($nextPartitionKey);
         $options->setNextRowKey($nextRowKey);
@@ -414,5 +414,3 @@ class TableServiceFunctionalOptionsTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($properties, $entity->getProperties(), 'Default Entity->getProperties');
     }
 }
-
-

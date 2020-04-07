@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -25,7 +25,7 @@
 namespace MicrosoftAzure\Storage\Tests\Functional\Queue;
 
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
-use MicrosoftAzure\Storage\Common\ServiceException;
+use MicrosoftAzure\Storage\Common\Exceptions\ServiceException;
 use MicrosoftAzure\Storage\Queue\Models\CreateQueueOptions;
 use MicrosoftAzure\Storage\Queue\Models\ListMessagesOptions;
 use MicrosoftAzure\Storage\Queue\Models\ListQueuesOptions;
@@ -96,7 +96,7 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
     private function createQueues($prefix, $list)
     {
         $containers = self::listQueues($prefix);
-        foreach($list as $item)  {
+        foreach ($list as $item) {
             if (!in_array($item, $containers)) {
                 $this->restProxy->createQueue($item);
             }
@@ -109,7 +109,7 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
     private function deleteQueues($prefix, $list)
     {
         $containers = self::listQueues($prefix);
-        foreach($list as $item)  {
+        foreach ($list as $item) {
             if (in_array($item, $containers)) {
                 $this->restProxy->deleteQueue($item);
             }
@@ -125,7 +125,7 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
         $opts = new ListQueuesOptions();
         $opts->setPrefix($prefix);
         $list = $this->restProxy->listQueues($opts);
-        foreach($list->getQueues() as $item)  {
+        foreach ($list->getQueues() as $item) {
             array_push($result, $item->getName());
         }
         return $result;
@@ -150,7 +150,7 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
                 $shouldReturn = true;
             }
         }
-        if($shouldReturn) {
+        if ($shouldReturn) {
             return;
         }
 
@@ -159,8 +159,8 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
         $this->assertNotNull($props->getLogging(), '$props->getLogging');
         $this->assertNotNull($props->getLogging()->getRetentionPolicy(), '$props->getLogging()->getRetentionPolicy');
         $this->assertNotNull($props->getLogging()->getVersion(), '$props->getLogging()->getVersion');
-        $this->assertNotNull($props->getMetrics()->getRetentionPolicy(), '$props->getMetrics()->getRetentionPolicy');
-        $this->assertNotNull($props->getMetrics()->getVersion(), '$props->getMetrics()->getVersion');
+        $this->assertNotNull($props->getHourMetrics()->getRetentionPolicy(), '$props->getHourMetrics()->getRetentionPolicy');
+        $this->assertNotNull($props->getHourMetrics()->getVersion(), '$props->getHourMetrics()->getVersion');
     }
 
     /**
@@ -183,7 +183,7 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
                 $shouldReturn = true;
             }
         }
-        if($shouldReturn) {
+        if ($shouldReturn) {
             return;
         }
 
@@ -198,8 +198,8 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
         $this->assertNotNull($props->getLogging()->getRetentionPolicy(), '$props->getLogging()->getRetentionPolicy');
         $this->assertNotNull($props->getLogging()->getVersion(), '$props->getLogging()->getVersion');
         $this->assertTrue($props->getLogging()->getRead(), '$props->getLogging()->getRead');
-        $this->assertNotNull($props->getMetrics()->getRetentionPolicy(), '$props->getMetrics()->getRetentionPolicy');
-        $this->assertNotNull($props->getMetrics()->getVersion(), '$props->getMetrics()->getVersion');
+        $this->assertNotNull($props->getHourMetrics()->getRetentionPolicy(), '$props->getHourMetrics()->getRetentionPolicy');
+        $this->assertNotNull($props->getHourMetrics()->getVersion(), '$props->getHourMetrics()->getVersion');
     }
 
     /**
@@ -305,9 +305,10 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
         $queue0 = $queue0[0];
         $this->assertNotNull($queue0, '$queue0');
         $this->assertNotNull(
-                $queue0->getMetadata(),
-                '$queue0->getMetadata' .
-                ' (https://github.com/azure/azure-storage-php/issues/252)');
+            $queue0->getMetadata(),
+            '$queue0->getMetadata' .
+                ' (https://github.com/azure/azure-storage-php/issues/252)'
+        );
         $this->assertNotNull($queue0->getName(), '$queue0->getName');
         $this->assertNotNull($queue0->getUrl(), '$queue0->getUrl');
 
@@ -576,7 +577,11 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
         $message0 = $result->getQueueMessages();
         $message0 = $message0[0];
 
-        $this->restProxy->deleteMessage(self::$testQueueForMessages7, $message0->getMessageId(), $message0->getPopReceipt());
+        $this->restProxy->deleteMessage(
+            self::$testQueueForMessages7,
+            $message0->getMessageId(),
+            $message0->getPopReceipt()
+        );
         $opts = new ListMessagesOptions();
         $opts->setNumberOfMessages(32);
         $result2 = $this->restProxy->listMessages(self::$testQueueForMessages7, $opts);
@@ -605,18 +610,22 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
         $message0 = $message0[0];
 
         $updateResult = $this->restProxy->updateMessage(
-                self::$testQueueForMessages8,
-                $message0->getMessageId(),
-                $message0->getPopReceipt(),
-                'new text',
-                0);
+            self::$testQueueForMessages8,
+            $message0->getMessageId(),
+            $message0->getPopReceipt(),
+            'new text',
+            0
+        );
         $listResult2 = $this->restProxy->listMessages(self::$testQueueForMessages8);
 
         // Assert
         $this->assertNotNull($updateResult, '$updateResult');
         $this->assertNotNull($updateResult->getPopReceipt(), '$updateResult->getPopReceipt()');
         $this->assertNotNull($updateResult->getTimeNextVisible(), '$updateResult->getTimeNextVisible()');
-        $this->assertTrue($year2010 < $updateResult->getTimeNextVisible(), '$year2010 < $updateResult->getTimeNextVisible()');
+        $this->assertTrue(
+            $year2010 < $updateResult->getTimeNextVisible(),
+            '$year2010 < $updateResult->getTimeNextVisible()'
+        );
 
         $this->assertNotNull($listResult2, '$listResult2');
         $entry = $listResult2->getQueueMessages();
@@ -638,6 +647,5 @@ class QueueServiceIntegrationTest extends IntegrationTestBase
 
         $this->assertNotNull($entry->getTimeNextVisible(), '$entry->getTimeNextVisible()');
         $this->assertTrue($year2010 < $entry->getTimeNextVisible(), '$year2010 < $entry->getTimeNextVisible()');
-
     }
 }

@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -24,7 +24,7 @@
 
 namespace MicrosoftAzure\Storage\Tests\Functional\Blob;
 
-use MicrosoftAzure\Storage\Common\ServiceException;
+use MicrosoftAzure\Storage\Common\Exceptions\ServiceException;
 use MicrosoftAzure\Storage\Common\Internal\StorageServiceSettings;
 
 class FunctionalTestBase extends IntegrationTestBase
@@ -49,7 +49,7 @@ class FunctionalTestBase extends IntegrationTestBase
         BlobServiceFunctionalTestData::setupData($accountName);
 
         $hasRoot = false;
-        foreach($this->restProxy->listContainers()->getContainers() as $container) {
+        foreach ($this->restProxy->listContainers()->getContainers() as $container) {
             if ($container->getName() == '$root') {
                 $hasRoot = true;
                 $this->safeDeleteContainerContents('$root');
@@ -58,7 +58,7 @@ class FunctionalTestBase extends IntegrationTestBase
             }
         }
 
-        foreach(BlobServiceFunctionalTestData::$testContainerNames as $name)  {
+        foreach (BlobServiceFunctionalTestData::$testContainerNames as $name) {
             $this->safeCreateContainer($name);
         }
 
@@ -73,7 +73,7 @@ class FunctionalTestBase extends IntegrationTestBase
 
     public function tearDown()
     {
-        foreach(BlobServiceFunctionalTestData::$testContainerNames as $name)  {
+        foreach (BlobServiceFunctionalTestData::$testContainerNames as $name) {
             $this->safeDeleteContainer($name);
         }
         parent::tearDown();
@@ -97,7 +97,7 @@ class FunctionalTestBase extends IntegrationTestBase
     private function safeDeleteContainerContents($name)
     {
         $blobListResult = $this->restProxy->listBlobs($name);
-        foreach($blobListResult->getBlobs() as $blob)  {
+        foreach ($blobListResult->getBlobs() as $blob) {
             try {
                 $this->restProxy->deleteBlob($name, $blob->getName());
             } catch (ServiceException $e) {
@@ -130,5 +130,3 @@ class FunctionalTestBase extends IntegrationTestBase
         }
     }
 }
-
-

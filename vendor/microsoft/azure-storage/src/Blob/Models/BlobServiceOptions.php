@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -24,6 +24,8 @@
  
 namespace MicrosoftAzure\Storage\Blob\Models;
 
+use MicrosoftAzure\Storage\Common\Models\ServiceOptions;
+
 /**
  * Blob service options.
  *
@@ -32,34 +34,59 @@ namespace MicrosoftAzure\Storage\Blob\Models;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
-class BlobServiceOptions
+class BlobServiceOptions extends ServiceOptions
 {
-    private $_timeout;
-
+    private $_leaseId;
+    private $_accessConditions;
+    
     /**
-     * Gets timeout.
+     * Gets lease Id for the blob
      *
-     * @return string.
+     * @return string
      */
-    public function getTimeout()
+    public function getLeaseId()
     {
-        return $this->_timeout;
+        return $this->_leaseId;
     }
-
+    
     /**
-     * Sets timeout.
+     * Sets lease Id for the blob
      *
-     * @param string $timeout value.
-     * 
-     * @return none.
+     * @param string $leaseId the blob lease id.
+     *
+     * @return void
      */
-    public function setTimeout($timeout)
+    public function setLeaseId($leaseId)
     {
-        $this->_timeout = $timeout;
+        $this->_leaseId = $leaseId;
+    }
+    
+    /**
+     * Gets access condition
+     *
+     * @return \MicrosoftAzure\Storage\Blob\Models\AccessCondition[]
+     */
+    public function getAccessConditions()
+    {
+        return $this->_accessConditions;
+    }
+    
+    /**
+     * Sets access condition
+     *
+     * @param mixed $accessConditions value to use.
+     *
+     * @return void
+     */
+    public function setAccessConditions($accessConditions)
+    {
+        if (!is_null($accessConditions) &&
+            is_array($accessConditions)) {
+            $this->_accessConditions = $accessConditions;
+        } else {
+            $this->_accessConditions = [$accessConditions];
+        }
     }
 }
-
-

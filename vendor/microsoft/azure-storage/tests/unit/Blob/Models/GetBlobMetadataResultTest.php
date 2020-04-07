@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,7 +22,9 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
+use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult;
 
 /**
@@ -33,111 +35,41 @@ use MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class GetBlobMetadataResultTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult::getETag
-     */
-    public function testGetETag()
-    {
-        // Setup
-        $getBlobMetadataResult = new GetBlobMetadataResult();
-        $expected = '0x8CACB9BD7C6B1B2';
-        $getBlobMetadataResult->setETag($expected);
-        
-        // Test
-        $actual = $getBlobMetadataResult->getETag();
-        
-        // Assert
-        $this->assertEquals($expected, $actual);
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult::setETag
-     */
-    public function testSetETag()
-    {
-        // Setup
-        $getBlobMetadataResult = new GetBlobMetadataResult();
-        $expected = '0x8CACB9BD7C6B1B2';
-        
-        // Test
-        $getBlobMetadataResult->setETag($expected);
-        
-        // Assert
-        $actual = $getBlobMetadataResult->getETag();
-        $this->assertEquals($expected, $actual);
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult::getLastModified
-     */
-    public function testGetLastModified()
-    {
-        // Setup
-        $getBlobMetadataResult = new GetBlobMetadataResult();
-        $expected = Utilities::rfc1123ToDateTime('Fri, 09 Oct 2009 21:04:30 GMT');
-        $getBlobMetadataResult->setLastModified($expected);
-        
-        // Test
-        $actual = $getBlobMetadataResult->getLastModified();
-        
-        // Assert
-        $this->assertEquals($expected, $actual);
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult::setLastModified
-     */
-    public function testSetLastModified()
-    {
-        // Setup
-        $getBlobMetadataResult = new GetBlobMetadataResult();
-        $expected = Utilities::rfc1123ToDateTime('Fri, 09 Oct 2009 21:04:30 GMT');
-        
-        // Test
-        $getBlobMetadataResult->setLastModified($expected);
-        
-        // Assert
-        $actual = $getBlobMetadataResult->getLastModified();
-        $this->assertEquals($expected, $actual);
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult::setMetadata
-     */
-    public function testSetMetadata()
-    {
-        // Setup
-        $container = new GetBlobMetadataResult();
-        $expected = array('key1' => 'value1', 'key2' => 'value2');
-        
-        // Test
-        $container->setMetadata($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $container->getMetadata());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult::getMetadata
+     * @covers MicrosoftAzure\Storage\Blob\Models\GetBlobMetadataResult::create
      */
-    public function testGetMetadata()
+    public function testCreate()
     {
         // Setup
-        $container = new GetBlobMetadataResult();
-        $expected = array('key1' => 'value1', 'key2' => 'value2');
-        $container->setMetadata($expected);
+        $sample = TestResources::listBlobsOneEntry();
+        $expectedProperties = $sample['Blobs']['Blob']['Properties'];
+        $expectedDate = Utilities::rfc1123ToDateTime($expectedProperties['Last-Modified']);
+        $expectedProperties['x-ms-meta-test0'] = 'test0';
+        $expectedProperties['x-ms-meta-test1'] = 'test1';
+        $expectedProperties['x-ms-meta-test2'] = 'test2';
+        $expectedProperties['x-ms-meta-test3'] = 'test3';
         
         // Test
-        $actual = $container->getMetadata();
+        $actual = GetBlobMetadataResult::create($expectedProperties);
         
         // Assert
-        $this->assertEquals($expected, $actual);
+        $this->assertEquals($expectedDate, $actual->getLastModified());
+        $this->assertEquals($expectedProperties['Etag'], $actual->getETag());
+
+        $metadata = $actual->getMetadata();
+        $this->assertEquals('test0', $metadata['test0']);
+        $this->assertEquals('test1', $metadata['test1']);
+        $this->assertEquals('test2', $metadata['test2']);
+        $this->assertEquals('test3', $metadata['test3']);
     }
 }
-
-

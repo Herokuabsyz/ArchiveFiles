@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
  
 namespace MicrosoftAzure\Storage\Blob\Models;
+
 use MicrosoftAzure\Storage\Common\Internal\Resources;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 
@@ -34,38 +35,50 @@ use MicrosoftAzure\Storage\Common\Internal\Utilities;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class CopyBlobResult
 {
-    /**
-     * @var string
-     */
     private $_etag;
-    
-    /**
-     * @var \DateTime
-     */
     private $_lastModified;
+    private $_copyId;
+    private $_copyStatus;
     
     /**
      * Creates CopyBlobResult object from the response of the copy blob request.
-     * 
+     *
      * @param array $headers The HTTP response headers in array representation.
-     * 
+     *
+     * @internal
+     *
      * @return CopyBlobResult
      */
-    public static function create($headers)
+    public static function create(array $headers)
     {
         $result = new CopyBlobResult();
-        $result->setETag(Utilities::tryGetValueInsensitive(
+        $result->setETag(
+            Utilities::tryGetValueInsensitive(
                 Resources::ETAG,
-                $headers));
+                $headers
+            )
+        );
+        $result->setCopyId(
+            Utilities::tryGetValueInsensitive(
+                Resources::X_MS_COPY_ID,
+                $headers
+            )
+        );
+        $result->setCopyStatus(
+            Utilities::tryGetValueInsensitive(
+                Resources::X_MS_COPY_STATUS,
+                $headers
+            )
+        );
         if (Utilities::arrayKeyExistsInsensitive(Resources::LAST_MODIFIED, $headers)) {
             $lastModified = Utilities::tryGetValueInsensitive(
                 Resources::LAST_MODIFIED,
-                $headers);
+                $headers
+            );
             $result->setLastModified(Utilities::rfc1123ToDateTime($lastModified));
         }
         
@@ -73,8 +86,56 @@ class CopyBlobResult
     }
     
     /**
+     * Gets copy Id
+     *
+     * @return string
+     */
+    public function getCopyId()
+    {
+        return $this->_copyId;
+    }
+    
+    /**
+     * Sets copy Id
+     *
+     * @param string $copyId the blob copy id.
+     *
+     * @internal
+     *
+     * @return void
+     */
+    protected function setCopyId($copyId)
+    {
+        $this->_copyId = $copyId;
+    }
+    
+    /**
+     * Gets copy status
+     *
+     * @return string
+     */
+    public function getCopyStatus()
+    {
+        return $this->_copyStatus;
+    }
+    
+    /**
+     * Sets copy status
+     *
+     * @param string $status the copy status.
+     *
+     * @internal
+     *
+     * @return void
+     */
+    protected function setCopyStatus($copystatus)
+    {
+        $this->_copyStatus = $copystatus;
+    }
+    
+    /**
      * Gets ETag.
-     * 
+     *
      * @return string
      */
     public function getETag()
@@ -87,9 +148,9 @@ class CopyBlobResult
      *
      * @param string $etag value.
      *
-     * @return none
+     * @return void
      */
-    public function setETag($etag)
+    protected function setETag($etag)
     {
         $this->_etag = $etag;
     }
@@ -109,12 +170,10 @@ class CopyBlobResult
      *
      * @param \DateTime $lastModified value.
      *
-     * @return none
+     * @return void
      */
-    public function setLastModified($lastModified)
+    protected function setLastModified(\DateTime $lastModified)
     {
         $this->_lastModified = $lastModified;
     }
 }
-
-

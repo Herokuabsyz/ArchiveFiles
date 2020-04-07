@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -22,7 +22,9 @@
  * @link      https://github.com/azure/azure-storage-php
  */
 namespace MicrosoftAzure\Storage\Tests\Unit\Blob\Models;
+
 use MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult;
+use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Common\Internal\Utilities;
 
 /**
@@ -33,7 +35,6 @@ use MicrosoftAzure\Storage\Common\Internal\Utilities;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class ListBlobBlocksResultTest extends \PHPUnit_Framework_TestCase
@@ -41,108 +42,48 @@ class ListBlobBlocksResultTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::setLastModified
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::getLastModified
-     */
-    public function testSetLastModified()
-    {
-        // Setup
-        $expected = Utilities::rfc1123ToDateTime('Sun, 25 Sep 2011 19:42:18 GMT');
-        $result = new ListBlobBlocksResult();
-        $result->setLastModified($expected);
-        
-        // Test
-        $result->setLastModified($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $result->getLastModified());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::setETag
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::getETag
-     */
-    public function testSetETag()
-    {
-        // Setup
-        $expected = '0x8CAFB82EFF70C46';
-        $result = new ListBlobBlocksResult();
-        $result->setETag($expected);
-        
-        // Test
-        $result->setETag($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $result->getETag());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::setContentType
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::getContentType
-     */
-    public function testSetContentType()
-    {
-        // Setup
-        $expected = '0x8CAFB82EFF70C46';
-        $result = new ListBlobBlocksResult();
-        $result->setContentType($expected);
-        
-        // Test
-        $result->setContentType($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $result->getContentType());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::setContentLength
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::getContentLength
-     */
-    public function testSetContentLength()
-    {
-        // Setup
-        $expected = 100;
-        $result = new ListBlobBlocksResult();
-        $result->setContentLength($expected);
-        
-        // Test
-        $result->setContentLength($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $result->getContentLength());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::setUncommittedBlocks
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::getUncommittedBlocks
-     */
-    public function testSetUncommittedBlocks()
-    {
-        // Setup
-        $result = new ListBlobBlocksResult();
-        $expected = array('Block1' => 10, 'Block2' => 20, 'Block3' => 30);
-        
-        // Test
-        $result->setUncommittedBlocks($expected);
-        
-        // Assert
-        $this->assertEquals($expected, $result->getUncommittedBlocks());
-    }
-    
-    /**
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::setCommittedBlocks
      * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::getCommittedBlocks
+     * @covers MicrosoftAzure\Storage\Blob\Models\ListBlobBlocksResult::create
      */
-    public function testSetCommittedBlocks()
+    public function testCreate()
     {
         // Setup
-        $result = new ListBlobBlocksResult();
-        $expected = array('Block1' => 10, 'Block2' => 20, 'Block3' => 30);
+        $sampleHeaders = TestResources::listBlocksMultipleEntriesHeaders();
+        $sampleBody    = TestResources::listBlocksMultipleEntriesBody();
+        $expectedDate = Utilities::rfc1123ToDateTime($sampleHeaders['Last-Modified']);
+        $getEntry = self::getMethod('getEntries');
+        $uncommittedBlocks = $getEntry->invokeArgs(null, array($sampleBody, 'UncommittedBlocks'));
+        $committedBlocks = $getEntry->invokeArgs(null, array($sampleBody, 'CommittedBlocks'));
         
         // Test
-        $result->setCommittedBlocks($expected);
+        $actual = ListBlobBlocksResult::create(
+            $sampleHeaders,
+            $sampleBody
+        );
         
         // Assert
-        $this->assertEquals($expected, $result->getCommittedBlocks());
+        $this->assertEquals($expectedDate, $actual->getLastModified());
+        $this->assertEquals($sampleHeaders['Etag'], $actual->getETag());
+        $this->assertEquals($sampleHeaders['Content-Type'], $actual->getContentType());
+        $this->assertEquals($sampleHeaders['x-ms-blob-content-length'], $actual->getContentLength());
+        $this->assertEquals($uncommittedBlocks, $actual->getUncommittedBlocks());
+        $this->assertEquals($committedBlocks, $actual->getCommittedBlocks());
+    }
+
+    protected static function getMethod($name)
+    {
+        $class = new \ReflectionClass(new ListBlobBlocksResult());
+        $method = $class->getMethod($name);
+        $method->setAccessible(true);
+        return $method;
     }
 }
-
-

@@ -23,12 +23,12 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Common\Internal\Serialization;
+
 use MicrosoftAzure\Storage\Tests\Framework\TestResources;
 use MicrosoftAzure\Storage\Common\Models\ServiceProperties;
-use MicrosoftAzure\Storage\Common\Internal\InvalidArgumentTypeException;
+use MicrosoftAzure\Storage\Common\Exceptions\InvalidArgumentTypeException;
 use MicrosoftAzure\Storage\Common\Internal\Serialization\JsonSerializer;
 use MicrosoftAzure\Storage\Common\Internal\Resources;
-
 
 /**
  * Unit tests for class XmlSerializer
@@ -38,7 +38,6 @@ use MicrosoftAzure\Storage\Common\Internal\Resources;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class JsonSerializerTest extends \PHPUnit_Framework_TestCase
@@ -154,7 +153,7 @@ class JsonSerializerTest extends \PHPUnit_Framework_TestCase
         $jsonSerializer = new JsonSerializer();
         $testData = null;
         $expected = "";
-        $this->setExpectedException('MicrosoftAzure\Storage\Common\Internal\InvalidArgumentTypeException', sprintf(Resources::INVALID_PARAM_MSG, 'array', 'array'));
+        $this->setExpectedException('MicrosoftAzure\Storage\Common\Exceptions\InvalidArgumentTypeException', sprintf(Resources::INVALID_PARAM_MSG, 'array', 'array'));
 
         // Test
         $actual = $jsonSerializer->serialize($testData);

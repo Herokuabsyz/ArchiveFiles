@@ -11,7 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * PHP version 5
  *
  * @category  Microsoft
@@ -23,6 +23,7 @@
  */
 
 namespace MicrosoftAzure\Storage\Tests\Unit\Table\Models;
+
 use MicrosoftAzure\Storage\Table\Models\BatchOperations;
 use MicrosoftAzure\Storage\Table\Models\BatchOperation;
 use MicrosoftAzure\Storage\Table\Models\Entity;
@@ -35,7 +36,6 @@ use MicrosoftAzure\Storage\Table\Models\Entity;
  * @author    Azure Storage PHP SDK <dmsh@microsoft.com>
  * @copyright 2016 Microsoft Corporation
  * @license   https://github.com/azure/azure-storage-php/LICENSE
- * @version   Release: 0.10.2
  * @link      https://github.com/azure/azure-storage-php
  */
 class BatchOperationsTest extends \PHPUnit_Framework_TestCase
@@ -44,7 +44,7 @@ class BatchOperationsTest extends \PHPUnit_Framework_TestCase
      * @covers MicrosoftAzure\Storage\Table\Models\BatchOperations::__construct
      * @covers MicrosoftAzure\Storage\Table\Models\BatchOperations::getOperations
      */
-    public function test__construct()
+    public function testConstruct()
     {
         // Test
         $operations = new BatchOperations();
@@ -59,7 +59,7 @@ class BatchOperationsTest extends \PHPUnit_Framework_TestCase
      * @covers MicrosoftAzure\Storage\Table\Models\BatchOperations::setOperations
      * @covers MicrosoftAzure\Storage\Table\Models\BatchOperations::getOperations
      * @covers MicrosoftAzure\Storage\Table\Models\BatchOperations::addOperation
-     * @depends test__construct
+     * @depends testConstruct
      */
     public function testSetOperations($operations)
     {
@@ -191,5 +191,3 @@ class BatchOperationsTest extends \PHPUnit_Framework_TestCase
         $this->assertCount(1, $operations->getOperations());
     }
 }
-
-
