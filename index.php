@@ -66,7 +66,7 @@ $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('Accoun
 // Create blob client.
 	echo 'afer connect';
 	# Setup a specific instance of an Azure::Storage::Client
-    $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('account_name').";AccountKey=".getenv('account_key');
+    //$connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('account_name').";AccountKey=".getenv('account_key');
     
     // Create blob client.
     $blobClient = BlobRestProxy::createBlobService($connectionString);
