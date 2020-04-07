@@ -3,6 +3,7 @@
 	{
         "ext-soap": "*",
         "php": ">=5.4.0",
-        "aws/aws-sdk-php": "^3.133"
+	"microsoft/azure-storage": "^0.19.1"
+        //"aws/aws-sdk-php": "^3.133"
     }
 }
