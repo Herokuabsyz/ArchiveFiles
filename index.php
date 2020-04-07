@@ -64,8 +64,7 @@ $connectionString = "DefaultEndpointsProtocol=https;AccountName=".getenv('Accoun
 //DefaultEndpointsProtocol=https;AccountName=archivefilesstorage;AccountKey=kc2KM1p0AxCnKTQ3QNfrYe4mTNzQAqhViNB7O/ObXWFKY2y8HJvFzS0xbVL+BfE3Xi6o+DIQptQJKwgHtlVT7A==;EndpointSuffix=core.windows.net
 // Create blob client.
 	echo 'afer connect';
-	echo getenv('AccountName');
-	echi getenv('AccountKey');
+	echo $connectionString;
 $blobClient = BlobRestProxy::createBlobService($connectionString);
 echo 'blobclient';
 $fileToUpload = $zip_name;
