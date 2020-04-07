@@ -78,7 +78,7 @@ $fileToUpload = $zip_name;
     $createContainerOptions->addMetaData("key2", "value2");
 
       $containerName = "blockblobs".generateRandomString();
-	  //echo $containerName;
+	 echo $containerName;
 	//$containerName = $zip_name;
     try {
         // Create container.
